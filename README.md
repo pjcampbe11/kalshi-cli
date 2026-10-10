@@ -1,14 +1,6 @@
 # Kalshi CLI
 
-```text
- _  __    _    _     ____  _   _ ___    ____ _     ___
-| |/ /   / \  | |   / ___|| | | |_ _|  / ___| |   |_ _|
-| ' /   / _ \ | |   \___ \| |_| || |  | |   | |    | |
-| . \  / ___ \| |___ ___) |  _  || |  | |___| |___ | |
-|_|\_\/_/   \_\_____|____/|_| |_|___|  \____|_____|___|
-
-   find markets  >  find an edge  >  decide  >  trade  >  keep score
-```
+![Kalshi CLI: find markets, find an edge, decide, trade, keep score](docs/banner.svg)
 
 Kalshi CLI is one command-line tool for Kalshi prediction markets, plus the strategy guide it is built around. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
 
