@@ -21,6 +21,7 @@ The demo runs every command in the terminal and then the dashboard. The trading 
   - [Trade](#trade)
   - [Keep score](#keep-score)
   - [Help and dashboard](#help-and-dashboard)
+- [Firehose: everything in one PDF](#firehose-everything-in-one-pdf)
 - [The dashboard](#the-dashboard)
 - [Output formats and color](#output-formats-and-color)
 - [API key and settings](#api-key-and-settings)
@@ -355,8 +356,30 @@ The trade log is one CSV file. Its path is `--file PATH` after `log`, or the `KA
 
 ### Help and dashboard
 
+- `firehose`: run every command into one color PDF. See [Firehose](#firehose-everything-in-one-pdf).
 - `examples`: every example command, grouped, with what each does. `--search WORD` filters. `--markdown` prints the list as a document.
 - `serve`: the dashboard. `--port N` (default 8765), `--allow-live`, `--no-browser`.
+
+## Firehose: everything in one PDF
+
+```powershell
+python kalshi_cli.py firehose --open
+```
+
+That one line runs every command the tool has and binds what each printed into a single PDF that looks like the terminal: same layout, same colors, same bars. The first page is a clickable list of contents, and every command is also a bookmark in the PDF sidebar. It takes about 3 minutes, most of it the market download, and needs nothing installed.
+
+What it runs: `categories`, the top of the whole exchange, all ten presets, nine sorts, four categories, `anomalies`, `picks`, `best` three ways, `grind` twice, then one market all the way down (`show`, both `analyze` views, `event`, `ladder`, `plan`, a dry-run `buy`, `brief`, `fee`), then your watchlist, your scorecard if a log exists, your positions and orders if a key is set, and the examples. It never sends an order.
+
+| Option | What it does |
+|---|---|
+| `--out FILE` | Where to write the PDF (default `kalshi_firehose_DATE_TIME.pdf` in the current folder) |
+| `--ticker TICKER` | The market to take all the way down (default: the top-scoring pick) |
+| `--my-prob PCT` | Your probability of YES for that market, used by the plan. Without it the plan uses the market's own price and shows no edge |
+| `--bankroll USD` | Account size for sizing (default 500) |
+| `--theme dark/light` | Dark like the terminal, or light for printing |
+| `--open` | Open the PDF when it is done |
+
+Put `--refresh` first for fresh prices: `python kalshi_cli.py --refresh firehose --open`
 
 ## The dashboard
 
@@ -470,6 +493,7 @@ All of them, with explanations, are in [docs/EXAMPLES.md](docs/EXAMPLES.md), or 
 - **Deciding** (`plan`, `brief`, `fee`, `watchlist`, `daily`): run against live data.
 - **Trade log** (`log init`, `add`, `settle`, `sold`, `stats`): run against live data, including settling a real resolved market. Fee math was checked against Kalshi's published example.
 - **Trading** (`buy`, `sell`, `orders`, `cancel`, `positions`): run against a stand-in server that verifies the request signature and body. The real order endpoint was confirmed to answer a bad key with a clean refusal, and dry runs were checked against live markets.
+- **Firehose:** run end to end; the PDF was checked for valid structure, working contents links and bookmarks, and its pages were inspected.
 - **Dashboard:** driven in a browser, including the token check, the address check and the refusal of live orders.
 - **Not tested:** any trading command against a funded account or the demo exchange, and `log fills`, since those need your key. `--open`, `open` and `brief --copy` were not run because the build machine has no browser or clipboard.
 

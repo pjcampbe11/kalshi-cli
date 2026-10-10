@@ -100,6 +100,9 @@ the current order endpoint.
          unless I start it with a flag.
        - examples: at least 50 example commands with explanations, also
          written to a document
+       - firehose: one command that runs every other command and binds
+         the output into a single PDF that keeps the terminal's layout
+         and colors, with a clickable contents page. No extra installs.
 
      EVERYWHERE
        - color and a clean layout in the terminal, off when piped

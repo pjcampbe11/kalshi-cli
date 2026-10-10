@@ -25,6 +25,7 @@ Last handoff: `kalshi_scan.py`, the re-recorded MP3 and the README.
 - `watchlist`, `daily`, `fee`, `examples`
 - `buy`, `sell`, `orders`, `cancel`, `positions`: optional trading, dry run unless `--live`
 - `serve`: the same tool as a local dashboard
+- `firehose`: runs every command and binds the output into one color PDF with clickable contents
 
 ## New everywhere
 

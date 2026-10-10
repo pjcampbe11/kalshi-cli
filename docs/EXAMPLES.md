@@ -1,6 +1,6 @@
 # Example commands
 
-77 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
+80 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
 
 A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Replace `TICKER` and `ORDER_ID` with real values.
 
@@ -12,6 +12,7 @@ A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Re
 | `python kalshi_cli.py categories` | Every category with open markets, counts, and its share of today's volume. |
 | `python kalshi_cli.py daily` | The morning run-through: watchlist, anomalies, top picks and your scorecard in one go. |
 | `python kalshi_cli.py serve` | Open the dashboard at http://127.0.0.1:8765. Same commands, same output, with buttons. |
+| `python kalshi_cli.py firehose --open` | Run EVERY command and bind the output into one color PDF with clickable contents, then open it. |
 | `python kalshi_cli.py --refresh categories` | Put --refresh before any command to re-download the market list instead of using the saved copy. |
 
 ## Find markets
@@ -120,3 +121,5 @@ A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Re
 | `python kalshi_cli.py analyze 1 --format json` | Statistics and price history as JSON for another program. |
 | `python kalshi_cli.py --color never top --category economics` | Plain text with no color codes. Color also switches off when you pipe to a file. |
 | `python kalshi_cli.py serve --port 9000` | The dashboard on a different port. |
+| `python kalshi_cli.py firehose --theme light --out report.pdf` | The everything-report on a white background, for printing. |
+| `python kalshi_cli.py --refresh firehose --ticker KXFEDDECISION-26OCT-H0 --my-prob 92 --bankroll 500 --open` | Fresh prices, a market of your choosing, and your own probability in the plan. |

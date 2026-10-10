@@ -42,7 +42,8 @@ KEEP SCORE
                     the trade log and the scorecard against the guide's rules
 
 HELP
-  examples          about 70 example commands with what each does
+  firehose          run EVERY command and bind the output into one color PDF
+  examples          about 80 example commands with what each does
   serve             the dashboard, at http://127.0.0.1:8765
 
 FROM FINDING TO BUYING
@@ -108,6 +109,7 @@ import urllib.parse
 import urllib.request
 import uuid
 import webbrowser
+import zlib
 
 # ----------------------------------------------------------------------------
 # Constants
@@ -3234,6 +3236,7 @@ EXAMPLES = [
     ("Start here", "categories", "Every category with open markets, counts, and its share of today's volume."),
     ("Start here", "daily", "The morning run-through: watchlist, anomalies, top picks and your scorecard in one go."),
     ("Start here", "serve", "Open the dashboard at http://127.0.0.1:8765. Same commands, same output, with buttons."),
+    ("Start here", "firehose --open", "Run EVERY command and bind the output into one color PDF with clickable contents, then open it."),
     ("Start here", "--refresh categories", "Put --refresh before any command to re-download the market list instead of using the saved copy."),
 
     ("Find markets", "top --category economics --top 10", "The 10 most traded economics markets in the last 24 hours."),
@@ -3314,6 +3317,8 @@ EXAMPLES = [
     ("Output", "analyze 1 --format json", "Statistics and price history as JSON for another program."),
     ("Output", "--color never top --category economics", "Plain text with no color codes. Color also switches off when you pipe to a file."),
     ("Output", "serve --port 9000", "The dashboard on a different port."),
+    ("Output", "firehose --theme light --out report.pdf", "The everything-report on a white background, for printing."),
+    ("Output", "--refresh firehose --ticker KXFEDDECISION-26OCT-H0 --my-prob 92 --bankroll 500 --open", "Fresh prices, a market of your choosing, and your own probability in the plan."),
 ]
 
 
@@ -3630,6 +3635,333 @@ def cmd_serve(a):
 
 
 # ----------------------------------------------------------------------------
+# Firehose: run everything and bind the output into one color PDF
+# ----------------------------------------------------------------------------
+# `firehose` runs every command this tool has, one after another, and writes
+# what each printed into a single PDF that looks like the terminal: same
+# layout, same colors, same bars. Nothing needs installing: the PDF is written
+# by hand below, using the Courier font that every PDF reader already has.
+#
+# It never sends an order. Trading commands appear as dry runs only.
+
+PDF_THEMES = {
+    # name: (page background, default text, {ansi color code: (r, g, b)})
+    "dark": ((0.047, 0.047, 0.047), (0.83, 0.83, 0.83),
+             {"90": (0.54, 0.54, 0.54), "91": (1.0, 0.37, 0.42), "92": (0.24, 0.86, 0.35), "93": (0.95, 0.84, 0.27),
+              "94": (0.44, 0.66, 1.0), "95": (0.95, 0.35, 0.84), "96": (0.16, 0.85, 0.90), "97": (1.0, 1.0, 1.0)}),
+    "light": ((1.0, 1.0, 1.0), (0.10, 0.10, 0.10),
+              {"90": (0.47, 0.47, 0.47), "91": (0.78, 0.16, 0.16), "92": (0.11, 0.54, 0.23), "93": (0.60, 0.45, 0.0),
+               "94": (0.12, 0.37, 0.75), "95": (0.65, 0.15, 0.64), "96": (0.04, 0.50, 0.55), "97": (0.0, 0.0, 0.0)}),
+}
+
+# Block characters the terminal output uses, and how tall each one is (in eighths of a line).
+BLOCK_HEIGHTS = {"▁": 1, "▂": 2, "▃": 3, "▄": 4, "▅": 5, "▆": 6, "▇": 7, "█": 8}
+
+
+def ansi_cells(text, columns):
+    """
+    Turn colored terminal text into rows of cells: (character, color code, bold, underline, inverse).
+    Lines longer than the page are wrapped.
+    """
+    rows = []
+    for raw in text.split("\n"):
+        row, color, bold, under, inverse, pos = [], None, False, False, False, 0
+        for match in ANSI_RE.finditer(raw):
+            row.extend((ch, color, bold, under, inverse) for ch in raw[pos:match.start()])
+            pos = match.end()
+            codes = [c for c in match.group(1).split(";") if c]
+            if not codes or codes == ["0"]:
+                color, bold, under, inverse = None, False, False, False
+            for code in codes:
+                if code == "1":
+                    bold = True
+                elif code == "4":
+                    under = True
+                elif code == "7":
+                    inverse = True
+                elif code in ("90", "91", "92", "93", "94", "95", "96", "97"):
+                    color = code
+        row.extend((ch, color, bold, under, inverse) for ch in raw[pos:])
+        while len(row) > columns:                      # wrap anything wider than the page, at a space when there is one
+            cut = columns
+            for i in range(columns, columns // 2, -1):
+                if row[i][0] == " ":
+                    cut = i
+                    break
+            rows.append(row[:cut])
+            row = row[cut:]
+            while row and row[0][0] == " ":            # do not start the next line with the space we broke at
+                row = row[1:]
+        rows.append(row)
+    return rows
+
+
+def pdf_text(chars):
+    """Escape a run of characters for a PDF string. Anything Courier cannot draw becomes '?'."""
+    data = "".join(chars).encode("cp1252", "replace").decode("latin-1")
+    return data.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def write_pdf(path, sections, theme="dark", columns=130, title="Kalshi CLI firehose"):
+    """
+    sections: list of (heading, rows) where rows come from ansi_cells().
+    Layout: landscape letter pages, one section starting per page, a cover page
+    with a clickable list of sections, and bookmarks in the PDF sidebar.
+    """
+    background, ink, palette = PDF_THEMES[theme]
+    width, height, margin = 792.0, 612.0, 30.0
+    size = min(9.0, (width - 2 * margin) / (columns * 0.6))    # Courier is 0.6 of its size wide
+    cell_w, line_h = size * 0.6, size * 1.28
+    top = height - margin - 16                                  # leave room for the page header
+    per_page = int((top - margin) // line_h)
+    rgb = lambda c: "%.3f %.3f %.3f" % c
+    color_of = lambda code: palette.get(code, ink)
+
+    def draw_rows(rows, header):
+        """Return the PDF drawing commands for one page of rows."""
+        ops = [f"{rgb(background)} rg 0 0 {width} {height} re f"]
+        ops.append(f"BT /F1 7.5 Tf {rgb(palette['90'])} rg 1 0 0 1 {margin} {height - margin - 4:.1f} Tm ({pdf_text(header)}) Tj ET")
+        for n, row in enumerate(rows):
+            y = top - (n + 1) * line_h + line_h * 0.28          # text baseline for this line
+            base = top - (n + 1) * line_h                       # bottom edge of this line's cell
+            col = 0
+            while col < len(row):
+                ch, color, bold, under, inverse = row[col]
+                x = margin + col * cell_w
+                fill = color_of(color)
+                if ch in BLOCK_HEIGHTS or ch == "░":
+                    # Bars: draw the block characters as real rectangles so they look solid.
+                    end = col
+                    while end < len(row) and row[end][0] == ch and row[end][1] == color:
+                        end += 1
+                    if ch == "░":
+                        shade = tuple(background[i] + (ink[i] - background[i]) * 0.16 for i in range(3))
+                        ops.append(f"{rgb(shade)} rg {x:.2f} {base + line_h * 0.12:.2f} {(end - col) * cell_w:.2f} {line_h * 0.76:.2f} re f")
+                    else:
+                        tall = line_h * BLOCK_HEIGHTS[ch] / 8.0
+                        ops.append(f"{rgb(fill)} rg {x:.2f} {base:.2f} {(end - col) * cell_w + 0.05:.2f} {tall:.2f} re f")
+                    col = end
+                    continue
+                if ch == "─":                              # horizontal rule
+                    end = col
+                    while end < len(row) and row[end][0] == ch:
+                        end += 1
+                    ops.append(f"{rgb(fill)} RG 0.5 w {x:.2f} {base + line_h * 0.5:.2f} m {x + (end - col) * cell_w:.2f} {base + line_h * 0.5:.2f} l S")
+                    col = end
+                    continue
+                # A run of ordinary text in one style.
+                end = col
+                while end < len(row) and row[end][1:] == row[col][1:] and row[end][0] not in BLOCK_HEIGHTS \
+                        and row[end][0] not in ("░", "─"):
+                    end += 1
+                chars = ["^" if c[0] == "▲" else "v" if c[0] == "▼" else c[0] for c in row[col:end]]
+                if "".join(chars).strip() or inverse or under:
+                    run_w = (end - col) * cell_w
+                    if inverse:                                 # banner strips: colored box, dark text
+                        ops.append(f"{rgb(fill)} rg {x:.2f} {base:.2f} {run_w:.2f} {line_h:.2f} re f")
+                        text_color = background if theme == "dark" else (1.0, 1.0, 1.0)
+                    else:
+                        text_color = fill
+                    font = "/F2" if bold else "/F1"
+                    ops.append(f"BT {font} {size:.2f} Tf {rgb(text_color)} rg 1 0 0 1 {x:.2f} {y:.2f} Tm ({pdf_text(chars)}) Tj ET")
+                    if under:
+                        ops.append(f"{rgb(text_color)} RG 0.4 w {x:.2f} {y - 1.2:.2f} m {x + run_w:.2f} {y - 1.2:.2f} l S")
+                col = end
+        return "\n".join(ops)
+
+    # ---- lay the sections out into pages ----
+    pages, starts = [], []                                      # pages: (rows, header); starts: first page index of each section
+    for heading, rows in sections:
+        starts.append(len(pages))
+        chunks = [rows[i:i + per_page] for i in range(0, max(1, len(rows)), per_page)]
+        for k, chunk in enumerate(chunks):
+            more = f"  (continued, {k + 1} of {len(chunks)})" if len(chunks) > 1 and k else ""
+            pages.append((chunk, f"{title}   |   {heading}{more}"))
+
+    # ---- the cover: title, when it ran, and a clickable list of sections ----
+    stamp = dt.datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
+    plain = lambda text, code=None, bold=False: [(ch, code, bold, False, False) for ch in text]
+    cover = [[], [(" ", "96", True, False, True)] + [(ch, "96", True, False, True) for ch in "KALSHI CLI "] + plain("  firehose", "97", True), [],
+             plain(f"  Every command, run on {stamp}.", "90"),
+             plain("  Prices are a snapshot from that moment. Nothing here predicts an outcome, and no order was sent.", "90"), [],
+             plain("  CONTENTS", "96", True) + plain("   click a line to jump to it", "90"), []]
+    first_entry = len(cover)
+    cover_lines_per_page = per_page
+    cover_pages = max(1, -(-(first_entry + len(sections)) // cover_lines_per_page))
+    for i, (heading, _) in enumerate(sections):
+        page_no = cover_pages + starts[i] + 1
+        label = f"  {i + 1:>3}.  {heading}"
+        cover.append(plain(label[:columns - 12], None) + plain(" " + "." * max(2, columns - 12 - len(label[:columns - 12])) + f" {page_no:>3}", "90"))
+    cover_chunks = [cover[i:i + cover_lines_per_page] for i in range(0, len(cover), cover_lines_per_page)]
+    all_pages = [(chunk, f"{title}   |   contents") for chunk in cover_chunks] + pages
+    total = len(all_pages)
+
+    # ---- write the PDF objects ----
+    objects = {}                                                # object number -> bytes
+    font1, font2, pages_obj, catalog, outlines = 1, 2, 3, 4, 5
+    next_id = [6]
+
+    def new_id():
+        next_id[0] += 1
+        return next_id[0] - 1
+
+    objects[font1] = b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>"
+    objects[font2] = b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>"
+    page_ids = [new_id() for _ in range(total)]
+    for n, (rows, header) in enumerate(all_pages):
+        stream = zlib.compress(draw_rows(rows, f"{header}   |   page {n + 1} of {total}").encode("latin-1", "replace"))
+        content = new_id()
+        objects[content] = b"<< /Length %d /Filter /FlateDecode >>\nstream\n" % len(stream) + stream + b"\nendstream"
+        annots = ""
+        if n < len(cover_chunks):
+            # Each contents line on the cover is a clickable link to its section's first page.
+            links = []
+            for row_index in range(len(cover_chunks[n])):
+                entry = n * cover_lines_per_page + row_index - first_entry
+                if 0 <= entry < len(sections):
+                    y0 = top - (row_index + 1) * line_h
+                    target = page_ids[len(cover_chunks) + starts[entry]]
+                    links.append(f"<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [{margin:.1f} {y0:.1f} {width - margin:.1f} {y0 + line_h:.1f}] "
+                                 f"/Dest [{target} 0 R /Fit] >>")
+            annots = " /Annots [" + " ".join(links) + "]"
+        objects[page_ids[n]] = (f"<< /Type /Page /Parent {pages_obj} 0 R /MediaBox [0 0 {width:.0f} {height:.0f}] "
+                                f"/Resources << /Font << /F1 {font1} 0 R /F2 {font2} 0 R >> >> /Contents {content} 0 R{annots} >>").encode("latin-1")
+    objects[pages_obj] = (f"<< /Type /Pages /Count {total} /Kids [" + " ".join(f"{i} 0 R" for i in page_ids) + "] >>").encode("latin-1")
+    # Bookmarks, one per section, shown in the PDF reader's sidebar.
+    item_ids = [new_id() for _ in sections]
+    for i, (heading, _) in enumerate(sections):
+        target = page_ids[len(cover_chunks) + starts[i]]
+        links = f"/Parent {outlines} 0 R" + (f" /Prev {item_ids[i - 1]} 0 R" if i else "") + (f" /Next {item_ids[i + 1]} 0 R" if i + 1 < len(sections) else "")
+        objects[item_ids[i]] = f"<< /Title ({pdf_text(heading[:90])}) {links} /Dest [{target} 0 R /Fit] >>".encode("latin-1")
+    objects[outlines] = (f"<< /Type /Outlines /First {item_ids[0]} 0 R /Last {item_ids[-1]} 0 R /Count {len(item_ids)} >>".encode("latin-1")
+                         if item_ids else b"<< /Type /Outlines /Count 0 >>")
+    objects[catalog] = f"<< /Type /Catalog /Pages {pages_obj} 0 R /Outlines {outlines} 0 R /PageMode /UseOutlines >>".encode("latin-1")
+    info = new_id()
+    objects[info] = f"<< /Title ({pdf_text(title)}) /Creator (kalshi_cli.py firehose) >>".encode("latin-1")
+
+    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = {}
+    for number in sorted(objects):
+        offsets[number] = len(out)
+        out += b"%d 0 obj\n" % number + objects[number] + b"\nendobj\n"
+    xref = len(out)
+    count = max(objects) + 1
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % count
+    for number in range(1, count):
+        out += b"%010d 00000 n \n" % offsets[number]
+    out += b"trailer\n<< /Size %d /Root %d 0 R /Info %d 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (count, catalog, info, xref)
+    with open(path, "wb") as fh:
+        fh.write(out)
+    return total
+
+
+def run_capture(argv, columns, timeout=600):
+    """Run this same script with one command, colors forced on, and return (output text, exit code)."""
+    env = dict(os.environ, COLUMNS=str(columns), LINES="50", PYTHONIOENCODING="utf-8")
+    env.pop("NO_COLOR", None)
+    try:
+        done = subprocess.run([sys.executable, os.path.abspath(__file__), "--color", "always"] + argv, capture_output=True,
+                              text=True, encoding="utf-8", errors="replace", env=env, timeout=timeout, stdin=subprocess.DEVNULL)
+    except subprocess.TimeoutExpired:
+        return "That command took too long and was stopped.", 1
+    text = done.stdout
+    errors = "\n".join(ln for ln in done.stderr.split("\n") if ln.strip() and "Downloading every open market" not in ln)
+    if errors:
+        text += ("\n" if text else "") + "\x1b[90m" + errors + "\x1b[0m"
+    return text.rstrip("\n"), done.returncode
+
+
+def cmd_firehose(a):
+    """Run every command and write the lot to one color PDF."""
+    stamp = dt.datetime.now().strftime("%Y%m%d_%H%M")
+    path = os.path.expanduser(a.out or f"kalshi_firehose_{stamp}.pdf")
+    columns = 130
+    bank = f"{a.bankroll:g}"
+    print(banner("KALSHI", paint("firehose", "bold") + paint("  every command, into one PDF. No order is sent.", "gray")) + "\n")
+
+    def step(argv, sections, note=""):
+        """Run one command, show progress, and keep its output for the PDF."""
+        heading = "python kalshi_cli.py " + " ".join(shlex.quote(x) if " " in x else x for x in argv)
+        print(f"  {cell(len(sections) + 1, 3, 'gray', align='>')} {heading[:100]} ", end="", flush=True)
+        started = time.time()
+        text, code = run_capture(argv, columns)
+        print(paint(f"{time.time() - started:.0f}s", "gray") + ("" if code == 0 else paint(f"  (exit {code})", "yellow")))
+        prompt = "\x1b[90mPS> \x1b[0m\x1b[1;97m" + heading + "\x1b[0m" + (f"\x1b[90m   {note}\x1b[0m" if note else "")
+        sections.append((heading.replace("python kalshi_cli.py ", ""), ansi_cells(prompt + "\n\n" + text, columns)))
+
+    sections = []
+    # ---- 1. the whole exchange ----
+    if a.refresh:
+        load_markets(a.cache_minutes, True)
+    step(["categories"], sections)
+    step(["top", "--all", "--top", "15"], sections)
+    for preset in sorted(PRESETS):
+        step(["top", "--preset", preset, "--top", "8"], sections)
+    for name in ("volume", "interest", "gainers", "losers", "newest", "cheapest", "priciest", "tight-spread", "wide-spread"):
+        step(["top", "--sort", name, "--top", "6", "--min-volume-24h", "500", "--no-links"], sections)
+    for category in ("economics", "politics", "weather", "tech"):
+        step(["top", "--category", category, "--top", "8"], sections)
+    # ---- 2. edge finders ----
+    step(["anomalies", "--top", "5"], sections)
+    step(["picks", "--top", "10", "--bankroll", bank, "--seed", "7"], sections)
+    step(["best", "5", "--by", "odds", "--bankroll", bank], sections)
+    step(["best", "5", "--by", "soonest", "--bankroll", bank], sections)
+    step(["grind", "--start", "10", "--target", "40"], sections)
+    step(["grind", "--start", "10", "--target", "20", "--stake", "50"], sections)
+    step(["best", "5", "--bankroll", bank], sections)
+
+    # ---- 3. one market, all the way down. Use the one named, or the top-scoring pick just listed. ----
+    ticker = a.ticker
+    if not ticker:
+        try:
+            with open(LAST_FILE, encoding="utf-8") as fh:
+                ticker = json.load(fh)[0]["ticker"]
+        except (OSError, ValueError, IndexError, KeyError):
+            ticker = None
+    if ticker:
+        ticker = ticker.upper()
+        event, mid = "", None
+        try:
+            market = api_get("/markets/" + urllib.parse.quote(ticker))["market"]
+            event = market.get("event_ticker", "")
+            bid, ask = cents(market.get("yes_bid_dollars")), cents(market.get("yes_ask_dollars"))
+            mid = (bid + ask) / 2 if bid is not None and ask is not None else cents(market.get("last_price_dollars"))
+        except Exception:
+            pass
+        step(["show", ticker, "--full-rules"], sections)
+        step(["analyze", ticker], sections)
+        step(["analyze", ticker, "--interval", "hour", "--days", "3", "--deep"], sections)
+        if event:
+            step(["event", event], sections)
+            step(["ladder", event], sections)
+        if a.my_prob is not None:
+            prob, note = a.my_prob, ""
+        else:
+            prob, note = round(mid or 50), "no --my-prob given, so this uses the market's own price: expect no edge"
+        step(["plan", ticker, "--my-prob", f"{prob:g}", "--bankroll", bank], sections, note)
+        step(["buy", "1", "--take"], sections, "dry run of the plan above; nothing is sent")
+        step(["brief", ticker], sections)
+        step(["fee", "--price", f"{round(mid or 50):g}", "--contracts", "100"], sections)
+    # ---- 4. your own things ----
+    step(["watchlist"], sections)
+    if os.path.exists(os.path.expanduser(LOG_FILE_DEFAULT)):
+        step(["log", "stats"], sections)
+    if load_auth():
+        step(["positions"], sections)
+        step(["orders"], sections)
+    step(["examples"], sections)
+
+    pages = write_pdf(path, sections, theme=a.theme, columns=columns)
+    print("\n" + paint("Wrote ", "green", "bold") + f"{path}  " + paint(f"({len(sections)} commands, {pages} pages, {os.path.getsize(path) / 1e6:.1f} MB)", "gray"))
+    print(paint("The first page is a clickable list of contents; each command is also a bookmark.", "gray"))
+    if a.open:
+        try:
+            webbrowser.open("file://" + os.path.abspath(path).replace("\\", "/"))
+        except Exception:
+            pass
+
+
+# ----------------------------------------------------------------------------
 # Command line
 # ----------------------------------------------------------------------------
 
@@ -3912,6 +4244,18 @@ def build_parser():
     e.add_argument("--allow-live", action="store_true", help="let the dashboard send real orders (each still needs a typed confirmation)")
     e.add_argument("--no-browser", action="store_true", help="do not open a browser tab automatically")
     e.set_defaults(func=cmd_serve)
+
+    e = sub.add_parser("firehose", help="run EVERY command and bind the output into one color PDF",
+                       description="Runs every command this tool has, with representative options, and writes what each printed "
+                                   "into one PDF that looks like the terminal: same layout, colors and bars. The first page is a "
+                                   "clickable list of contents. Trading commands appear as dry runs; nothing is sent.")
+    e.add_argument("--out", "-o", metavar="FILE", help="where to write the PDF (default: kalshi_firehose_DATE_TIME.pdf here)")
+    e.add_argument("--ticker", metavar="TICKER", help="the market to take all the way down (default: the top-scoring pick)")
+    e.add_argument("--my-prob", type=float, metavar="PCT", help="your probability of YES for that market, used by the plan")
+    e.add_argument("--bankroll", type=float, default=500, metavar="USD", help="account size for sizing (default 500)")
+    e.add_argument("--theme", choices=["dark", "light"], default="dark", help="dark like the terminal (default), or light for printing")
+    e.add_argument("--open", action="store_true", help="open the PDF when it is done")
+    e.set_defaults(func=cmd_firehose)
 
     # ---- trade log ----
     lg = sub.add_parser("log", help="the trade log and scorecard: init, add, settle, sold, stats, fills")
