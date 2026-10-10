@@ -2,7 +2,7 @@
 
 ![Kalshi CLI: find markets, find an edge, decide, trade, keep score](docs/banner.svg)
 
-Kalshi CLI is one command-line tool for Kalshi prediction markets, plus the strategy guide it is built around. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
+Kalshi CLI is one command-line tool for Kalshi prediction markets. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
 
 Kalshi is a regulated exchange where you trade yes-or-no contracts on real events: Fed decisions, inflation, weather, elections, sports. Each contract costs 1 to 99 cents and pays $1 if you are right. This project started as a question, "what does it actually take to make money there?", and turned into a guide that answers it and a tool that does the math.
 
