@@ -1,0 +1,50 @@
+PROMPTS USED TO BUILD THE KALSHI STRATEGY AND ROADMAP PACKAGE
+Session date: Saturday, October 10, 2026 (America/Chicago). Built with Claude.
+Prompts are verbatim as dictated, in order. A short note under each says what it produced.
+
+------------------------------------------------------------------------------
+1. 12:57 PM - the guide
+------------------------------------------------------------------------------
+Let's create a guide. Keep it concise and just what's important. But I want a strategy and roadmap in how to invest in Kalshi. I want to know how much upfront money and how much time it would take to invest to make $1,000, $5,000, $10,000, $25,000. So given that goal of those four different milestones of, of profit, let's come up with a strategy on how we could make that money. So make a determination on what you actually need to start. And then give a strategy on what to bet on, what to look for, etc. And then put it into a PDF with a clickable TOC. TOC, like table of contents.
+
+-> Research on fees, deposits, taxes, Illinois legal status and trader outcomes; milestone math; a 20,000-trader simulation.
+
+------------------------------------------------------------------------------
+2. 12:57 PM - graphics
+------------------------------------------------------------------------------
+You could add graphics like tables, bar graphs, charts, pie charts, I don't know, anything that would be applicable or helpful. Don't just purposely do it for no reason.
+
+-> Kalshi_Strategy_Roadmap.pdf with a fee curve chart, a simulated bankroll chart, and tables.
+
+------------------------------------------------------------------------------
+3. 1:06 PM - audio
+------------------------------------------------------------------------------
+Now make this like a mini audiobook and then give me a WAV file. WAV. Or an MP3. And look, it, it's a small seven-pager, so the audio will be short.
+
+-> Narration script written for the ear, rendered to MP3.
+
+------------------------------------------------------------------------------
+4. 1:12 PM - how Kalshi works
+------------------------------------------------------------------------------
+Can we insert maybe in the beginning a brief explanation of how to use Kalshi, the things that you can bet or trade on, and like how you can make your own bets or trades if that's possible?
+
+-> New section 1 in the PDF and Part one in the audio; sections renumbered 1 to 12.
+
+------------------------------------------------------------------------------
+5. 1:31 PM - log, API, script, templates, this file
+------------------------------------------------------------------------------
+Okay, now create me the log that I need to create. And, like, is there an API that we can use? And then maybe a Python script that can be created. And then that log gets updated in a path. Uh, you use argsparse or something. But either way, uh, maybe we just start with anything referenced in the book. Right, like let's get like supporting templates and documents and uh, also like the prompt that created all of this. Uh, we could put that in like a text file summary of like prompts used.
+
+------------------------------------------------------------------------------
+6. 1:32 PM - trading from the script, dashboard
+------------------------------------------------------------------------------
+Yeah, maybe even we can place bets from the script. Or just use the script for logging. I it just depends what there what there is, what's the capability. Um and like if you would want to like load a local host to have some kind of like dashboard to interface or just maybe it's easier just to use Calshi. Calshi with a K. Calshi.
+
+-> kalshi_log.py (argparse, --log PATH, Kalshi public API, local dashboard), trade log CSV, six templates, README. Decision: the script is read-only and logs trades; orders are placed in the Kalshi app.
+
+------------------------------------------------------------------------------
+ONE-PROMPT VERSION
+------------------------------------------------------------------------------
+If you want to rebuild the whole package in one go, this covers it:
+
+Create a concise guide with a strategy and roadmap for trading on Kalshi. Open with a brief explanation of how Kalshi works, what you can trade, and whether you can make your own bets. Work out how much upfront money and how much time it takes to reach $1,000, $5,000, $10,000 and $25,000 in profit, what I need to start, what to trade, what to look for and what to avoid. Check current fees, rules, taxes and my state's legal status. Add tables and charts only where they help. Deliver: (1) a PDF with a clickable table of contents, (2) a short MP3 audiobook of it, (3) the trade log the guide calls for as a CSV, (4) a Python script using argparse that updates the log at a path I pass in, pulls market data and results from Kalshi's API, scores the log against the guide's rules and builds a local dashboard, without placing orders, (5) the supporting templates the guide references, and (6) a text file listing the prompts used.

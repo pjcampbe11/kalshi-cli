@@ -1,0 +1,1 @@
+id,mode,opened_at,ticker,title,niche,side,order_type,contracts,price_cents,mkt_yes_bid,mkt_yes_ask,my_prob_yes,edge_pts,fee_usd,cost_usd,bankroll_usd,pct_bankroll,rules_read,thesis,close_time,status,closed_at,result,exit_price_cents,exit_fee_usd,payout_usd,pnl_usd,notes

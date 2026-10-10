@@ -1,0 +1,13 @@
+# Private files that must never be pushed
+*.pem
+*.key
+.env
+
+# Your real trading records (the template and sample log are still tracked)
+trade_log.csv
+*.bak
+kalshi_fills_raw.csv
+fills_*.csv
+dashboard.html
+
+__pycache__/

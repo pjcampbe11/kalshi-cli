@@ -1,0 +1,97 @@
+Kalshi Strategy and Roadmap. What it takes to reach one thousand, five thousand, ten thousand, and twenty-five thousand dollars in profit.
+
+Part one. How Kalshi works.
+
+Every Kalshi market is a yes or no question about a real event, such as whether the Fed will cut rates in December. You buy Yes or No contracts, priced from one cent to ninety-nine cents. A correct contract pays one dollar, and a wrong one pays nothing. So the price is roughly the market's estimate of the probability. Buy Yes at sixty cents, and you make forty cents if it happens, and lose sixty cents if it does not.
+
+You trade against other users, not against Kalshi. The exchange matches buyers with sellers and charges a fee. You can sell a position at the current price any time before the market settles, and winnings are paid into your balance automatically.
+
+Getting started is simple. Create an account and verify your identity, link a bank account, deposit, pick a market, read its rules, then place an order. A market order fills right away at the best price on offer. A limit order names your own price, and waits for someone to take it.
+
+What can you trade? Sports is the biggest category, about eighty-seven percent of all volume. Then economics, like Fed decisions, inflation, and jobs reports. Politics, like elections and legislation. Weather, like daily high temperatures by city. Tech and A.I., like product launches and model releases. Culture, like awards and box office. And financial and crypto markets, including leveraged crypto futures.
+
+Can you make your own bets? In three ways, with limits. First, you can set your own price. A limit order is you posting your own odds on an existing market, and it is the main tool in this guide. Second, you can build a combo, which bundles several outcomes into one contract that pays only if all of them hit. The price comes from market makers, you cannot use a limit order, and cashing out early usually costs you. This guide says to skip those. Third, you can suggest a new market. You cannot list one yourself, but you can submit an idea on the Kalshi ideas feed. Kalshi reviews each suggestion, and listing is not guaranteed.
+
+Part two. The short version.
+
+Kalshi is a zero-sum exchange, minus fees. Every dollar you win comes from another trader, and the house takes a cut of each trade. A study of more than three hundred thousand Kalshi contracts found that the average buyer loses money. People who hit market orders lost about thirty-two percent on average. People who posted limit orders lost about ten percent. So there is no bet type that reliably pays. Profit comes only from pricing an event more accurately than the market does, and most people cannot do that.
+
+That shapes the whole plan. Start with five hundred dollars you can afford to lose completely, and treat the first three months as a test of whether you have an edge. Move up to twenty-five hundred dollars only if your first one hundred logged trades are profitable after fees. Plan on five to seven hours a week. And if those first hundred trades lose money, stop. That result is the answer, and it is the most common one.
+
+Part three. What you need to start.
+
+Fund the account by bank transfer, which is free. Debit cards cost two percent. You need a simple trade log, a spreadsheet with the market, the price, your own probability, your size, and the result. That log is the only way to know whether you have an edge. You need one niche, a category you can know better than a casual trader. And you need to export your full trade history each year for taxes, because Kalshi's tax forms do not calculate your cost basis.
+
+Part four. How the fees work against you.
+
+The fee on a market order is seven percent of the price, times one minus the price, per contract. It peaks at one and three quarter cents on a fifty-cent contract, and shrinks toward the extremes. Think of that fee as the edge you need just to break even. At fifty cents, your estimate has to beat the market by almost two percentage points before you earn anything. Limit orders that rest on the book pay nothing on most markets. So use limit orders by default.
+
+Part five. The strategy.
+
+First, post limit orders. Decide the price you are willing to pay, rest the order, and let the market come to you. If it does not fill, you lose nothing.
+
+Second, skip longshots. Contracts under about fifteen cents win less often than their price implies, and that is where the biggest losses in the data sit. Contracts above about sixty cents have been closer to fairly priced. Just remember the tradeoff. One loss at ninety cents wipes out nine wins.
+
+Third, work one niche where the answer comes from public data. Economic releases, like inflation, jobs numbers, and Fed decisions. Weather, checked against National Weather Service forecasts. Or tech and A.I., like product launches and model releases. If you follow that field for work, you start ahead of the average trader.
+
+Fourth, only trade when your number differs from the market by five points or more. Write down your probability before you look at the price.
+
+Fifth, read the rules of every market. Each one names its exact resolution source and cutoff time. Many losses come from being right about the event and wrong about the wording.
+
+And sixth, trade close to resolution. Prices get more accurate as closing nears, and your money turns over faster.
+
+Part six. What to avoid.
+
+Market orders, except to exit a position that has gone wrong. Parlays and combo contracts. Live sports and fifteen-minute crypto markets, where you are trading against automated firms with faster data. Perpetual futures, which are leveraged. Buying right after news breaks, because the price has already moved. And raising your size to win back a loss.
+
+Part seven. Bet sizing and risk rules.
+
+Risk one to three percent of your bankroll per trade. On twenty-five hundred dollars, that is twenty-five to seventy-five dollars. Keep no more than twenty percent of the bankroll on outcomes that would all lose together. If you are down fifteen percent in a month, stop trading until the next month and review the log. If you are down forty percent from your deposits, stop entirely. And never add money to cover losses.
+
+Part eight. The roadmap.
+
+Phase zero is setup, the first two weeks. Open the account, pick a niche, build the log, and paper trade twenty markets.
+
+Phase one is the test, months one through three, with five hundred dollars. Make one hundred real trades at five to fifteen dollars each. Limit orders only. Log every one.
+
+Phase two is the build, months four through twelve, with twenty-five hundred dollars. Same method, about thirty trades a month. The goal is the first milestone, one thousand dollars in profit.
+
+Phase three is scale, from year two on. Add capital in steps, up to twenty-five thousand dollars, but only while the log stays profitable over each block of one hundred trades.
+
+The phase one gate matters more than anything else here. One hundred trades is a small sample, and a profitable run can still be luck, so keep checking each new block. A losing run is a clear signal. Take it.
+
+Part nine. Money and time for each milestone.
+
+These figures assume the account grows four percent a month with profits left in. That is what a trader earns in simulation if they are right three points more often than the price implies. It is an assumption about skill, not a forecast, and most accounts never see it.
+
+For one thousand dollars in profit, plan on a twenty-five hundred dollar bankroll and about nine months.
+
+For five thousand dollars in profit, plan on a five thousand dollar bankroll and about eighteen months.
+
+For ten thousand in profit, a ten thousand dollar bankroll and about eighteen months.
+
+For twenty-five thousand in profit, a twenty-five thousand dollar bankroll and about eighteen months.
+
+Nine months is roughly two hundred to two hundred seventy hours of work. Eighteen months is roughly four hundred to five hundred fifty hours.
+
+The pattern is simple. The larger milestones need more capital, not just more time. Starting from twenty-five hundred dollars and never adding money, twenty-five thousand in profit takes about five years, even if you are good. In practice this is one path. Start at twenty-five hundred, hit the first thousand, then add capital as the log keeps proving out.
+
+Part ten. What the odds look like.
+
+I simulated twenty thousand traders, each starting with twenty-five hundred dollars, over two years.
+
+A skilled trader using limit orders had a sixty percent chance of being up a thousand dollars or more after twelve months, and an eighteen percent chance of being down. The median account reached about six thousand dollars after two years.
+
+A trader with no edge, using market orders, had an eighty-three percent chance of being down after twelve months. The median account fell to about eleven hundred dollars after two years.
+
+A trader who was slightly wrong, using market orders, was down ninety-six percent of the time, with about five hundred forty dollars left.
+
+Two things to take from this. Even a skilled trader has about a one in five chance of being down after a year, so short-term results say little. And the research suggests most people are closer to the second and third cases than the first.
+
+Part eleven. Taxes and legal status.
+
+Taxes are unsettled. The I.R.S. has not said how prediction market profits are taxed. If they are treated as gambling, the rule for this year caps loss deductions at ninety percent of winnings, so you can owe tax in a break-even year. Set aside twenty-five to thirty percent of profit, and ask a tax preparer.
+
+In Illinois, a federal judge blocked the state on October second from enforcing its gambling license rules against Kalshi's sports contracts, so they remain available for now. The state can appeal, and that could change. Non-sports markets are not part of that dispute.
+
+That is the guide. Fees and rules change often, so confirm them in the app before you fund the account. This is general information, not financial, legal, or tax advice.
