@@ -2,7 +2,7 @@
 
 Week of: ________
 
-Run `python kalshi_log.py settle` then `python kalshi_log.py stats --deposits TOTAL` and copy the numbers.
+Run `python kalshi_cli.py log settle` then `python kalshi_cli.py log stats --deposits TOTAL` and copy the numbers.
 
 | Item | This week |
 |---|---|

@@ -17,4 +17,4 @@ Run this before every order. If any box stays empty, skip the trade.
 
 Then log it:
 
-    python kalshi_log.py add --ticker ____ --side ____ --price ____ --contracts ____ --my-prob ____ --bankroll ____ --niche ____ --rules-read --thesis "____"
+    python kalshi_cli.py log add --ticker ____ --side ____ --price ____ --contracts ____ --my-prob ____ --bankroll ____ --niche ____ --rules-read --thesis "____"

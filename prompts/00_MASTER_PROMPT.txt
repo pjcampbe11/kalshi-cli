@@ -7,7 +7,7 @@
 
                      M A S T E R   B U I L D   P R O M P T
         One prompt that rebuilds the whole package, start to finish.
-        Version 1.0  |  October 10, 2026  |  Author: Patrick Campbell
+        Version 2.0  |  October 10, 2026  |  Author: Patrick Campbell
 
 +============================================================================+
 |  HOW TO USE THIS FILE                                                      |
@@ -23,7 +23,7 @@
 |    01_research.txt               Look up the current facts, with sources   |
 |    02_guide_pdf.txt              Write the strategy guide as a PDF         |
 |    03_audio_mp3.txt              Turn the guide into a short audiobook     |
-|    04_log_and_script.txt         Build the trade log and its script        |
+|    04_log_and_tool.txt           Build the trade log and the tool          |
 |    05_templates_and_docs.txt     Templates, README and .gitignore          |
 |    06_test.txt                   Prove the toolkit works                   |
 |    07_deliver_and_github.txt     Desktop folder, zip and GitHub commands   |
@@ -35,10 +35,10 @@
 
       research ---> guide ---> audio ---> toolkit ---> desktop ---> GitHub
          |            |          |           |            |           |
-      fees, tax,    PDF with    MP3      trade log,    one folder   private
-      legal, odds   TOC and   narration  script, API,  with every     repo
-                    charts              dashboard,       file
-                                         templates
+      fees, tax,    PDF with    MP3      one tool:     one folder   private
+      legal, odds   TOC and   narration  find, edge,   with every     repo
+                    charts              decide, trade,   file
+                                        score, dashboard
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
 
@@ -130,33 +130,78 @@ Build everything the guide refers to, so nothing in it is left as homework.
      size against bankroll, fees, result, and profit or loss. Include an
      empty template and a clearly labelled sample log with made-up trades.
 
-  b) PYTHON SCRIPT. One file, standard library where possible, using
-     argparse. The log path is passed with --log or an environment variable.
-     It should:
-       - create the log, add a trade, record an early sale, and settle
-         finished trades by pulling results from Kalshi's API
-       - pull market title, prices and rules from the API when I log a trade
-       - warn me when a trade breaks a rule from the guide
-       - print a scorecard: profit after fees, win rate against price paid,
-         whether my probabilities beat the market's, the pass or fail test,
-         the stop rules, and progress to each milestone
-       - include a fee calculator and a position-size helper
-       - build a local dashboard as one HTML file, with an option to serve
-         it on localhost only
-       - download my balance and raw fills when I supply an API key
-     Back up the log before every write.
-     Comment the code heavily so I can follow each step.
+  b) THE TOOL. ONE Python file, argparse, standard library wherever
+     possible, that does everything below as subcommands. I use Windows
+     with PowerShell. Check Kalshi's current API first, including the
+     current order endpoint. Comment the code heavily.
 
-     The script must be READ-ONLY. It must never place, change or cancel an
-     order. Order code that has not been run against a real account can lose
-     money on a bug, so I will place trades in the Kalshi app and log them
-     here. Say this in the README.
+     FIND MARKETS
+       - list categories; screen every open market by category, price,
+         side, volume, spread, movement, keyword and closing time, with a
+         top N, a set of sorts and ready-made presets
+       - show the unique ticker and kalshi.com link for every market, and
+         let a row number from the last list stand in for the ticker
+       - one market or one event in detail, live: rules, fee, break-even,
+         order book; a price watcher
+       - analyze one market: price history as a text chart, statistics
+         (range, typical move, trend, volume), with drill-down into the
+         order book and recent trades
+       - an event's prices as a probability distribution
+
+     FIND AN EDGE, WITH MATH
+       - anomalies: outcome sets whose bids add past $1, threshold ladders
+         priced out of order, moves measured against the market's own
+         normal day (z-score), volume surges, quotes far from the last
+         trade. Guard against false positives and say what was done.
+       - best 1 / 3 / 5 / 10 by score, by best odds, or by soonest
+       - picks: a diversified random draw from the best, sized, with a
+         simulated basket
+       - grind: compound a small stake through a chain of likely winners,
+         and show the real odds of the whole chain under several stakes
+
+     DECIDE
+       - brief: write a research prompt I can give an AI assistant
+       - plan: my probability in; edge, Kelly-based size, checklist and a
+         ready order out
+       - fee calculator, watchlist, and a daily run-through
+
+     TRADE (OPTIONAL)
+       - buy, sell, orders, cancel, positions
+       - every trading command is a dry run unless I add --live and type
+         a confirmation word; limit orders only; a per-order dollar cap;
+         sells checked against holdings; no automatic retry of a failed
+         send; a practice-exchange switch
+       - API key from environment variables only
+
+     KEEP SCORE
+       - log init / add / settle / sold / stats / fills, writing the CSV
+         at a path I choose, backing it up before every write
+       - the scorecard: profit after fees, win rate against price paid,
+         whether my probabilities beat the market's, the pass or fail
+         test, the stop rules, and progress to each milestone
+
+     DASHBOARD AND HELP
+       - serve: the same tool as a local web dashboard. It must run the
+         same commands and show the same output, so the two never
+         disagree. Localhost only, token-protected, live orders off
+         unless I start it with a flag.
+       - examples: at least 50 example commands with explanations, also
+         written to a document
+
+     EVERYWHERE
+       - color and a clean layout in the terminal, off when piped
+       - a few plain sentences under each output saying what the numbers
+         mean, and the next command to run
+       - json, csv and markdown output where it makes sense
+       - honesty: nothing here predicts outcomes. Say what each estimate
+         assumes, and show the result if the market price is simply right.
 
   c) TEMPLATES. One short file each: pre-trade checklist, risk rules card,
      roadmap with phase gates, weekly review and 100-trade review, niche
      research worksheet, tax records checklist.
 
-  d) README. What each file is, how to run the script, how the API works,
+  d) README. A clickable table of contents, every command and option,
+     the math behind each score, how the API works,
      how to set up an API key safely, what you tested and what you could not
      test.
 
@@ -170,11 +215,16 @@ Build everything the guide refers to, so nothing in it is left as homework.
 +----------------------------------------------------------------------------+
 I want proof it works, not a claim that it should.
 
-  * Run the script end to end against the live Kalshi API using real open
-    and settled markets.
+  * Run every command end to end against the live Kalshi API using real
+    open and settled markets. Drive the dashboard in a browser.
   * Check the fee math against an example Kalshi has published.
   * Check the request-signing code against a test key.
-  * Run the script once more from the final folder on my computer.
+  * Run the tool once more from the final folder on my computer.
+  * Record a demo GIF that runs every command, then the dashboard, and
+    embed it at the top of the README.
+  * Test the trading commands against a stand-in server that checks the
+    request signature and body, and confirm the real endpoint answers a bad
+    key with a clean refusal. Never send a real order as a test.
   * Tell me exactly what was tested and what was not, and why.
 
 +----------------------------------------------------------------------------+
@@ -199,7 +249,8 @@ I want proof it works, not a claim that it should.
   * Never present a growth rate or win rate as a forecast. Label it as an
     assumption and show what happens when it is wrong.
   * Never ask me to paste an API key, token or password into the chat.
-  * Do not place trades, move money, send email or publish anything.
+  * Do not place trades, move money, send email or publish anything
+    yourself. The trading script is for me to run.
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
 
@@ -211,7 +262,7 @@ I want proof it works, not a claim that it should.
   |-- README.md
   |-- CHANGES.md
   |-- .gitignore
-  |-- kalshi_log.py
+  |-- kalshi_cli.py                   <-- the one tool
   |-- trade_log_template.csv
   |-- sample_trade_log.csv
   |-- prompts_used.txt                <-- the original six prompts, verbatim
@@ -220,10 +271,14 @@ I want proof it works, not a claim that it should.
   |   |-- 01_research.txt
   |   |-- 02_guide_pdf.txt
   |   |-- 03_audio_mp3.txt
-  |   |-- 04_log_and_script.txt
+  |   |-- 04_log_and_tool.txt
   |   |-- 05_templates_and_docs.txt
   |   |-- 06_test.txt
   |   `-- 07_deliver_and_github.txt
+  |-- docs/
+  |   |-- demo.gif
+  |   |-- dashboard.png
+  |   `-- EXAMPLES.md
   |-- guide/
   |   |-- Kalshi_Strategy_Roadmap.pdf
   |   |-- Kalshi_Strategy_Roadmap_Audio.mp3

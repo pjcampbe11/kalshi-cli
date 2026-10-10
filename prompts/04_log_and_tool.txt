@@ -1,0 +1,129 @@
+  __  _ _    _____ ___   ___  _
+ /  \| | |  |_   _/ _ \ / _ \| |
+| () |_  _|   | || (_) | (_) | |__
+ \__/  |_|    |_| \___/ \___/|____|
+
+
+  KALSHI TOOLKIT  |  MODULE 4 OF 7
+  Build the trade log and the tool.
+  Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
+
+  research > guide > audio > [TOOL] > docs > test > deliver
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++----------------------------------------------------------------------------+
+|  SETTINGS                                                                  |
++----------------------------------------------------------------------------+
+  Platform ............ Kalshi (prediction market, spelled with a K)
+  My state ............ Illinois
+  Profit milestones ... $1,000 / $5,000 / $10,000 / $25,000
+  Output folder ....... a folder named kalshi_toolkit on my Desktop
+  GitHub .............. private repo named kalshi-toolkit on my account
+  Today's date ........ look it up; do not assume
+
++----------------------------------------------------------------------------+
+|  WHAT YOU ARE GIVEN                                                        |
++----------------------------------------------------------------------------+
+The guide PDF from module 02, attached. The tool enforces the rules in it:
+the minimum edge, the sizing limit, the pass or fail test, the stop rules
+and the profit milestones. Read those from the guide; do not invent them.
+
++----------------------------------------------------------------------------+
+|  THE JOB                                                                   |
++----------------------------------------------------------------------------+
+The guide tells me to keep a trade log and judge myself by it. Build the log
+and one tool that finds markets, looks for an edge, helps me decide, can
+trade, and keeps score. First check Kalshi's current API documentation: what
+works without a login, what needs an API key, how requests are signed, and
+the current order endpoint.
+
+  a) TRADE LOG. A CSV with the columns needed to judge whether I have an
+     edge: the trade, my own probability before I saw the price, the price,
+     size against bankroll, fees, result, and profit or loss. Include an
+     empty template and a clearly labelled sample log with made-up trades.
+
+  b) THE TOOL. ONE Python file, argparse, standard library wherever
+     possible, that does everything below as subcommands. I use Windows
+     with PowerShell. Check Kalshi's current API first, including the
+     current order endpoint. Comment the code heavily.
+
+     FIND MARKETS
+       - list categories; screen every open market by category, price,
+         side, volume, spread, movement, keyword and closing time, with a
+         top N, a set of sorts and ready-made presets
+       - show the unique ticker and kalshi.com link for every market, and
+         let a row number from the last list stand in for the ticker
+       - one market or one event in detail, live: rules, fee, break-even,
+         order book; a price watcher
+       - analyze one market: price history as a text chart, statistics
+         (range, typical move, trend, volume), with drill-down into the
+         order book and recent trades
+       - an event's prices as a probability distribution
+
+     FIND AN EDGE, WITH MATH
+       - anomalies: outcome sets whose bids add past $1, threshold ladders
+         priced out of order, moves measured against the market's own
+         normal day (z-score), volume surges, quotes far from the last
+         trade. Guard against false positives and say what was done.
+       - best 1 / 3 / 5 / 10 by score, by best odds, or by soonest
+       - picks: a diversified random draw from the best, sized, with a
+         simulated basket
+       - grind: compound a small stake through a chain of likely winners,
+         and show the real odds of the whole chain under several stakes
+
+     DECIDE
+       - brief: write a research prompt I can give an AI assistant
+       - plan: my probability in; edge, Kelly-based size, checklist and a
+         ready order out
+       - fee calculator, watchlist, and a daily run-through
+
+     TRADE (OPTIONAL)
+       - buy, sell, orders, cancel, positions
+       - every trading command is a dry run unless I add --live and type
+         a confirmation word; limit orders only; a per-order dollar cap;
+         sells checked against holdings; no automatic retry of a failed
+         send; a practice-exchange switch
+       - API key from environment variables only
+
+     KEEP SCORE
+       - log init / add / settle / sold / stats / fills, writing the CSV
+         at a path I choose, backing it up before every write
+       - the scorecard: profit after fees, win rate against price paid,
+         whether my probabilities beat the market's, the pass or fail
+         test, the stop rules, and progress to each milestone
+
+     DASHBOARD AND HELP
+       - serve: the same tool as a local web dashboard. It must run the
+         same commands and show the same output, so the two never
+         disagree. Localhost only, token-protected, live orders off
+         unless I start it with a flag.
+       - examples: at least 50 example commands with explanations, also
+         written to a document
+
+     EVERYWHERE
+       - color and a clean layout in the terminal, off when piped
+       - a few plain sentences under each output saying what the numbers
+         mean, and the next command to run
+       - json, csv and markdown output where it makes sense
+       - honesty: nothing here predicts outcomes. Say what each estimate
+         assumes, and show the result if the market price is simply right.
+
++----------------------------------------------------------------------------+
+|  WHAT TO HAND BACK                                                         |
++----------------------------------------------------------------------------+
+kalshi_cli.py, trade_log_template.csv, sample_trade_log.csv, and the
+commands to try them.
+
++----------------------------------------------------------------------------+
+|  GROUND RULES                                                              |
++----------------------------------------------------------------------------+
+  * This is general information, not financial, legal or tax advice. Say so
+    in the guide and the README.
+  * Never present a growth rate or win rate as a forecast. Label it as an
+    assumption and show what happens when it is wrong.
+  * Never ask me to paste an API key, token or password into the chat.
+  * Do not place trades, move money, send email or publish anything
+    yourself. The trading script is for me to run.
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

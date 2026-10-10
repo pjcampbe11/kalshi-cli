@@ -9,7 +9,7 @@ Each month:
 
 Each January:
 - [ ] Export the full trade history from Kalshi
-- [ ] Run `python kalshi_log.py fills --out fills_YEAR.csv` if you have an API key
+- [ ] Run `python kalshi_cli.py log fills --out fills_YEAR.csv` if you have an API key
 - [ ] Save a copy of `trade_log.csv` as of December 31
 - [ ] Total the year: gross winnings, gross losses, fees, net (keep winnings and losses as separate totals)
 - [ ] Collect any 1099 forms (1099-B, 1099-MISC for bonuses, 1099-INT for interest)

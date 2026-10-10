@@ -8,7 +8,7 @@
   Prove the toolkit works.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 
-  research > guide > audio > script > docs > [TEST] > deliver
+  research > guide > audio > tool > docs > [TEST] > deliver
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
 
@@ -32,11 +32,16 @@ The kalshi_toolkit folder from modules 02 to 05, attached or on my computer.
 +----------------------------------------------------------------------------+
 I want proof it works, not a claim that it should.
 
-  * Run the script end to end against the live Kalshi API using real open
-    and settled markets.
+  * Run every command end to end against the live Kalshi API using real
+    open and settled markets. Drive the dashboard in a browser.
   * Check the fee math against an example Kalshi has published.
   * Check the request-signing code against a test key.
-  * Run the script once more from the final folder on my computer.
+  * Run the tool once more from the final folder on my computer.
+  * Record a demo GIF that runs every command, then the dashboard, and
+    embed it at the top of the README.
+  * Test the trading commands against a stand-in server that checks the
+    request signature and body, and confirm the real endpoint answers a bad
+    key with a clean refusal. Never send a real order as a test.
   * Tell me exactly what was tested and what was not, and why.
 
 Fix anything that fails and tell me what you changed. Do not use a real API
@@ -56,6 +61,7 @@ tested with the reason.
   * Never present a growth rate or win rate as a forecast. Label it as an
     assumption and show what happens when it is wrong.
   * Never ask me to paste an API key, token or password into the chat.
-  * Do not place trades, move money, send email or publish anything.
+  * Do not place trades, move money, send email or publish anything
+    yourself. The trading script is for me to run.
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

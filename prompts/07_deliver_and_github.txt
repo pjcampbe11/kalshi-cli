@@ -8,7 +8,7 @@
   Desktop folder, zip and GitHub commands.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 
-  research > guide > audio > script > docs > test > [DELIVER]
+  research > guide > audio > tool > docs > test > [DELIVER]
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
 
@@ -54,6 +54,7 @@ The folder on my Desktop, the zip, the commands, and the summary.
   * Never present a growth rate or win rate as a forecast. Label it as an
     assumption and show what happens when it is wrong.
   * Never ask me to paste an API key, token or password into the chat.
-  * Do not place trades, move money, send email or publish anything.
+  * Do not place trades, move money, send email or publish anything
+    yourself. The trading script is for me to run.
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

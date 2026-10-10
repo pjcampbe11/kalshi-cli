@@ -6,7 +6,7 @@ Check a box only when it is true. Do not start a phase until the gate before it 
 - [ ] Kalshi account opened and identity verified
 - [ ] Bank account linked for ACH (free; debit cards cost 2%)
 - [ ] Niche chosen: ____________
-- [ ] Log created: `python kalshi_log.py --log PATH init`
+- [ ] Log created: `python kalshi_cli.py log --file PATH init`
 - [ ] 20 paper trades logged with `--paper`
 - [ ] **Gate:** I can explain the resolution rules of every market I tracked
 

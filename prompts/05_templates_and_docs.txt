@@ -8,7 +8,7 @@
   Templates, README and .gitignore.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 
-  research > guide > audio > script > [DOCS] > test > deliver
+  research > guide > audio > tool > [DOCS] > test > deliver
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
 
@@ -25,7 +25,7 @@
 +----------------------------------------------------------------------------+
 |  WHAT YOU ARE GIVEN                                                        |
 +----------------------------------------------------------------------------+
-The guide PDF from module 02 and kalshi_log.py from module 04, attached.
+The guide PDF from module 02 and kalshi_cli.py from module 04, attached.
 
 +----------------------------------------------------------------------------+
 |  THE JOB                                                                   |
@@ -38,7 +38,8 @@ from the script. Keep each file short enough to use, not to study.
      roadmap with phase gates, weekly review and 100-trade review, niche
      research worksheet, tax records checklist.
 
-  d) README. What each file is, how to run the script, how the API works,
+  d) README. A clickable table of contents, every command and option,
+     the math behind each score, how the API works,
      how to set up an API key safely, what you tested and what you could not
      test.
 
@@ -60,6 +61,7 @@ The six templates, README.md, .gitignore and the prompts file.
   * Never present a growth rate or win rate as a forecast. Label it as an
     assumption and show what happens when it is wrong.
   * Never ask me to paste an API key, token or password into the chat.
-  * Do not place trades, move money, send email or publish anything.
+  * Do not place trades, move money, send email or publish anything
+    yourself. The trading script is for me to run.
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

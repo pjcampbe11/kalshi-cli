@@ -8,7 +8,7 @@
   Write the strategy guide as a PDF.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 
-  research > [GUIDE] > audio > script > docs > test > deliver
+  research > [GUIDE] > audio > tool > docs > test > deliver
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
 
@@ -75,6 +75,7 @@ any assumptions I should know about.
   * Never present a growth rate or win rate as a forecast. Label it as an
     assumption and show what happens when it is wrong.
   * Never ask me to paste an API key, token or password into the chat.
-  * Do not place trades, move money, send email or publish anything.
+  * Do not place trades, move money, send email or publish anything
+    yourself. The trading script is for me to run.
 
 - - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
