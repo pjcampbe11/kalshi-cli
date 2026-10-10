@@ -1,0 +1,242 @@
+ _  __    _    _     ____  _   _ ___   _____ ___   ___  _     _  _____ _____
+| |/ /   / \  | |   / ___|| | | |_ _| |_   _/ _ \ / _ \| |   | |/ /_ _|_   _|
+| ' /   / _ \ | |   \___ \| |_| || |    | || | | | | | | |   | ' / | |  | |
+| . \  / ___ \| |___ ___) |  _  || |    | || |_| | |_| | |___| . \ | |  | |
+|_|\_\/_/   \_\_____|____/|_| |_|___|   |_| \___/ \___/|_____|_|\_\___| |_|
+
+
+                     M A S T E R   B U I L D   P R O M P T
+        One prompt that rebuilds the whole package, start to finish.
+        Version 1.0  |  October 10, 2026  |  Author: Patrick Campbell
+
++============================================================================+
+|  HOW TO USE THIS FILE                                                      |
+|  1. Edit the SETTINGS block if anything has changed.                       |
+|  2. Copy everything between the two "CUT HERE" lines.                      |
+|  3. Paste it into a new Claude session that can run code, search the web   |
+|     and reach your computer.                                               |
++============================================================================+
+
++============================================================================+
+|  THE SEVEN MODULES (each file runs on its own)                             |
+|                                                                            |
+|    01_research.txt               Look up the current facts, with sources   |
+|    02_guide_pdf.txt              Write the strategy guide as a PDF         |
+|    03_audio_mp3.txt              Turn the guide into a short audiobook     |
+|    04_log_and_script.txt         Build the trade log and its script        |
+|    05_templates_and_docs.txt     Templates, README and .gitignore          |
+|    06_test.txt                   Prove the toolkit works                   |
+|    07_deliver_and_github.txt     Desktop folder, zip and GitHub commands   |
+|                                                                            |
+|  Run the master for a full rebuild. Run one module to redo one piece.      |
++============================================================================+
+
+  WHAT IT BUILDS
+
+      research ---> guide ---> audio ---> toolkit ---> desktop ---> GitHub
+         |            |          |           |            |           |
+      fees, tax,    PDF with    MP3      trade log,    one folder   private
+      legal, odds   TOC and   narration  script, API,  with every     repo
+                    charts              dashboard,       file
+                                         templates
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++----------------------------------------------------------------------------+
+|  SETTINGS                                                                  |
++----------------------------------------------------------------------------+
+  Platform ............ Kalshi (prediction market, spelled with a K)
+  My state ............ Illinois
+  Profit milestones ... $1,000 / $5,000 / $10,000 / $25,000
+  Output folder ....... a folder named kalshi_toolkit on my Desktop
+  GitHub .............. private repo named kalshi-toolkit on my account
+  Today's date ........ look it up; do not assume
+
++----------------------------------------------------------------------------+
+|  1. THE GOAL                                                               |
++----------------------------------------------------------------------------+
+I want a complete, working starter kit for trading on Kalshi: a short guide I
+can read in ten minutes, an audio version of it, and the tools the guide tells
+me to use. I am new to Kalshi, so I need an honest picture of what it takes,
+including the chance that it does not work. Do not sell me on it. If the
+evidence says most people lose, say so plainly and build the plan around
+finding out cheaply whether I have an edge.
+
+Build everything in this one session. Make reasonable decisions yourself and
+tell me which ones you made. Only stop to ask if a choice cannot be undone.
+
++----------------------------------------------------------------------------+
+|  2. RESEARCH FIRST                                                         |
++----------------------------------------------------------------------------+
+Kalshi's fees, rules and legal status change often, so look everything up
+today instead of relying on what you remember. I need current answers on:
+
+  * How Kalshi works, what can be traded, and whether I can make my own
+    bets (setting my own price, combos, suggesting a market).
+  * The fee formula for market orders and limit orders, deposit and
+    withdrawal costs, and interest paid on balances.
+  * Research on how real Kalshi traders have done, split by order type and
+    by contract price. Use an academic source if one exists.
+  * How profits are taxed and what forms Kalshi sends. Say where the rules
+    are unsettled.
+  * The legal status in my state, including any open court cases.
+  * Whether Kalshi has an API, what it allows without a login, what needs
+    an API key, and how requests are signed.
+
+List every source with a link at the end of the guide.
+
++----------------------------------------------------------------------------+
+|  3. THE GUIDE (PDF)                                                        |
++----------------------------------------------------------------------------+
+Write a concise guide: only what matters, no filler. It needs to answer:
+
+  * How much money do I need up front, and how much time, to reach each
+    profit milestone? Work this out with real math and state the
+    assumptions. Run a simulation of many traders so I can see the range of
+    outcomes for someone with an edge, someone with none, and someone
+    slightly wrong, not just a best case.
+  * What do I need to start?
+  * What should I trade, what should I look for, and what should I avoid?
+  * How big should each trade be, and when must I stop?
+  * A phased roadmap with a clear pass or fail test before I add money.
+
+Open with a short section on how Kalshi works. Close with taxes, legal status
+and sources.
+
+Use tables and charts only where they make something clearer than a sentence
+would. Do not add a graphic just to have one. Check every chart for
+overlapping labels before you call it done.
+
+Write it so it reads like a person wrote it: plain, specific wording.
+
+Deliver it as a PDF with a clickable table of contents and PDF bookmarks.
+Open the finished PDF, look at every page, and confirm the links work.
+
++----------------------------------------------------------------------------+
+|  4. THE AUDIO VERSION (MP3)                                                |
++----------------------------------------------------------------------------+
+Turn the guide into a short audiobook. Rewrite it for the ear first: spell
+out numbers, turn tables and charts into sentences, and leave out the source
+list. Render it to MP3 with a natural-sounding voice. Keep the narration
+text as its own file. Tell me if you were not able to listen to the result.
+
++----------------------------------------------------------------------------+
+|  5. THE TOOLKIT                                                            |
++----------------------------------------------------------------------------+
+Build everything the guide refers to, so nothing in it is left as homework.
+
+  a) TRADE LOG. A CSV with the columns needed to judge whether I have an
+     edge: the trade, my own probability before I saw the price, the price,
+     size against bankroll, fees, result, and profit or loss. Include an
+     empty template and a clearly labelled sample log with made-up trades.
+
+  b) PYTHON SCRIPT. One file, standard library where possible, using
+     argparse. The log path is passed with --log or an environment variable.
+     It should:
+       - create the log, add a trade, record an early sale, and settle
+         finished trades by pulling results from Kalshi's API
+       - pull market title, prices and rules from the API when I log a trade
+       - warn me when a trade breaks a rule from the guide
+       - print a scorecard: profit after fees, win rate against price paid,
+         whether my probabilities beat the market's, the pass or fail test,
+         the stop rules, and progress to each milestone
+       - include a fee calculator and a position-size helper
+       - build a local dashboard as one HTML file, with an option to serve
+         it on localhost only
+       - download my balance and raw fills when I supply an API key
+     Back up the log before every write.
+     Comment the code heavily so I can follow each step.
+
+     The script must be READ-ONLY. It must never place, change or cancel an
+     order. Order code that has not been run against a real account can lose
+     money on a bug, so I will place trades in the Kalshi app and log them
+     here. Say this in the README.
+
+  c) TEMPLATES. One short file each: pre-trade checklist, risk rules card,
+     roadmap with phase gates, weekly review and 100-trade review, niche
+     research worksheet, tax records checklist.
+
+  d) README. What each file is, how to run the script, how the API works,
+     how to set up an API key safely, what you tested and what you could not
+     test.
+
+  e) PROMPTS FILE. A text file with the prompt used to build the package.
+
+  f) .gitignore. Keep my real trade log, API key files, raw fills and the
+     dashboard out of Git. The template and sample log stay tracked.
+
++----------------------------------------------------------------------------+
+|  6. TEST BEFORE YOU HAND IT OVER                                           |
++----------------------------------------------------------------------------+
+I want proof it works, not a claim that it should.
+
+  * Run the script end to end against the live Kalshi API using real open
+    and settled markets.
+  * Check the fee math against an example Kalshi has published.
+  * Check the request-signing code against a test key.
+  * Run the script once more from the final folder on my computer.
+  * Tell me exactly what was tested and what was not, and why.
+
++----------------------------------------------------------------------------+
+|  7. DELIVERY                                                               |
++----------------------------------------------------------------------------+
+  * Put the whole package in the output folder on my Desktop. Find the real
+    Desktop path first; on Windows it may not be under the home folder.
+  * Also give me a single zip of the same folder.
+  * Give me the exact commands to create the private GitHub repo and push,
+    for my operating system. Check whether git and the GitHub CLI are
+    installed and signed in, and include the sign-in steps if they are not.
+    Do not create the repo or push unless I say so.
+  * Finish with a short summary: what you built, the key numbers for each
+    milestone, the decisions you made on my behalf, and a list of what
+    changed if this is an update to an earlier build.
+
++----------------------------------------------------------------------------+
+|  8. GROUND RULES                                                           |
++----------------------------------------------------------------------------+
+  * This is general information, not financial, legal or tax advice. Say so
+    in the guide and the README.
+  * Never present a growth rate or win rate as a forecast. Label it as an
+    assumption and show what happens when it is wrong.
+  * Never ask me to paste an API key, token or password into the chat.
+  * Do not place trades, move money, send email or publish anything.
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++============================================================================+
+|  EXPECTED OUTPUT                                                           |
++============================================================================+
+
+  kalshi_toolkit/
+  |-- README.md
+  |-- CHANGES.md
+  |-- .gitignore
+  |-- kalshi_log.py
+  |-- trade_log_template.csv
+  |-- sample_trade_log.csv
+  |-- prompts_used.txt                <-- the original six prompts, verbatim
+  |-- prompts/
+  |   |-- 00_MASTER_PROMPT.txt        <-- this file
+  |   |-- 01_research.txt
+  |   |-- 02_guide_pdf.txt
+  |   |-- 03_audio_mp3.txt
+  |   |-- 04_log_and_script.txt
+  |   |-- 05_templates_and_docs.txt
+  |   |-- 06_test.txt
+  |   `-- 07_deliver_and_github.txt
+  |-- guide/
+  |   |-- Kalshi_Strategy_Roadmap.pdf
+  |   |-- Kalshi_Strategy_Roadmap_Audio.mp3
+  |   `-- audio_narration_script.txt
+  `-- templates/
+      |-- pre_trade_checklist.md
+      |-- risk_rules_card.md
+      |-- roadmap_phase_gates.md
+      |-- review_templates.md
+      |-- niche_research_worksheet.md
+      `-- tax_records_checklist.md
+
++============================================================================+
+|  This prompt replaces the six separate prompts from the original session.  |
+|  Their verbatim text is kept in prompts_used.txt.                          |
++============================================================================+

@@ -1,0 +1,80 @@
+  __ ___    ___ _   _ ___ ___  ___
+ /  \_  )  / __| | | |_ _|   \| __|
+| () / /  | (_ | |_| || || |) | _|
+ \__/___|  \___|\___/|___|___/|___|
+
+
+  KALSHI TOOLKIT  |  MODULE 2 OF 7
+  Write the strategy guide as a PDF.
+  Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
+
+  research > [GUIDE] > audio > script > docs > test > deliver
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++----------------------------------------------------------------------------+
+|  SETTINGS                                                                  |
++----------------------------------------------------------------------------+
+  Platform ............ Kalshi (prediction market, spelled with a K)
+  My state ............ Illinois
+  Profit milestones ... $1,000 / $5,000 / $10,000 / $25,000
+  Output folder ....... a folder named kalshi_toolkit on my Desktop
+  GitHub .............. private repo named kalshi-toolkit on my account
+  Today's date ........ look it up; do not assume
+
++----------------------------------------------------------------------------+
+|  WHAT YOU ARE GIVEN                                                        |
++----------------------------------------------------------------------------+
+The research notes from module 01. If I have not attached them, do the
+research yourself first: current fees, trader outcomes, taxes, and the legal
+status in my state, each with a source link.
+
++----------------------------------------------------------------------------+
+|  THE JOB                                                                   |
++----------------------------------------------------------------------------+
+I want a short guide to trading on Kalshi that I can read in ten minutes. I am
+new to it, so give me an honest picture, including the chance that it does
+not work. Do not sell me on it. Build the plan around finding out cheaply
+whether I have an edge.
+
+Write a concise guide: only what matters, no filler. It needs to answer:
+
+  * How much money do I need up front, and how much time, to reach each
+    profit milestone? Work this out with real math and state the
+    assumptions. Run a simulation of many traders so I can see the range of
+    outcomes for someone with an edge, someone with none, and someone
+    slightly wrong, not just a best case.
+  * What do I need to start?
+  * What should I trade, what should I look for, and what should I avoid?
+  * How big should each trade be, and when must I stop?
+  * A phased roadmap with a clear pass or fail test before I add money.
+
+Open with a short section on how Kalshi works. Close with taxes, legal status
+and sources.
+
+Use tables and charts only where they make something clearer than a sentence
+would. Do not add a graphic just to have one. Check every chart for
+overlapping labels before you call it done.
+
+Write it so it reads like a person wrote it: plain, specific wording.
+
+Deliver it as a PDF with a clickable table of contents and PDF bookmarks.
+Open the finished PDF, look at every page, and confirm the links work.
+
++----------------------------------------------------------------------------+
+|  WHAT TO HAND BACK                                                         |
++----------------------------------------------------------------------------+
+The PDF, plus two or three lines on the key numbers for each milestone and
+any assumptions I should know about.
+
++----------------------------------------------------------------------------+
+|  GROUND RULES                                                              |
++----------------------------------------------------------------------------+
+  * This is general information, not financial, legal or tax advice. Say so
+    in the guide and the README.
+  * Never present a growth rate or win rate as a forecast. Label it as an
+    assumption and show what happens when it is wrong.
+  * Never ask me to paste an API key, token or password into the chat.
+  * Do not place trades, move money, send email or publish anything.
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

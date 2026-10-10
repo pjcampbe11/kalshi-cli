@@ -1,0 +1,61 @@
+  __   __   _____ ___ ___ _____
+ /  \ / /  |_   _| __/ __|_   _|
+| () / _ \   | | | _|\__ \ | |
+ \__/\___/   |_| |___|___/ |_|
+
+
+  KALSHI TOOLKIT  |  MODULE 6 OF 7
+  Prove the toolkit works.
+  Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
+
+  research > guide > audio > script > docs > [TEST] > deliver
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++----------------------------------------------------------------------------+
+|  SETTINGS                                                                  |
++----------------------------------------------------------------------------+
+  Platform ............ Kalshi (prediction market, spelled with a K)
+  My state ............ Illinois
+  Profit milestones ... $1,000 / $5,000 / $10,000 / $25,000
+  Output folder ....... a folder named kalshi_toolkit on my Desktop
+  GitHub .............. private repo named kalshi-toolkit on my account
+  Today's date ........ look it up; do not assume
+
++----------------------------------------------------------------------------+
+|  WHAT YOU ARE GIVEN                                                        |
++----------------------------------------------------------------------------+
+The kalshi_toolkit folder from modules 02 to 05, attached or on my computer.
+
++----------------------------------------------------------------------------+
+|  THE JOB                                                                   |
++----------------------------------------------------------------------------+
+I want proof it works, not a claim that it should.
+
+  * Run the script end to end against the live Kalshi API using real open
+    and settled markets.
+  * Check the fee math against an example Kalshi has published.
+  * Check the request-signing code against a test key.
+  * Run the script once more from the final folder on my computer.
+  * Tell me exactly what was tested and what was not, and why.
+
+Fix anything that fails and tell me what you changed. Do not use a real API
+key and do not place any orders.
+
++----------------------------------------------------------------------------+
+|  WHAT TO HAND BACK                                                         |
++----------------------------------------------------------------------------+
+A short test report: each check, pass or fail, and the list of what was not
+tested with the reason.
+
++----------------------------------------------------------------------------+
+|  GROUND RULES                                                              |
++----------------------------------------------------------------------------+
+  * This is general information, not financial, legal or tax advice. Say so
+    in the guide and the README.
+  * Never present a growth rate or win rate as a forecast. Label it as an
+    assumption and show what happens when it is wrong.
+  * Never ask me to paste an API key, token or password into the chat.
+  * Do not place trades, move money, send email or publish anything.
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

@@ -1,0 +1,53 @@
+  __ ____    _  _   _ ___ ___ ___
+ /  \__ /   /_\| | | |   \_ _/ _ \
+| () |_ \  / _ \ |_| | |) | | (_) |
+ \__/___/ /_/ \_\___/|___/___\___/
+
+
+  KALSHI TOOLKIT  |  MODULE 3 OF 7
+  Turn the guide into a short audiobook.
+  Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
+
+  research > guide > [AUDIO] > script > docs > test > deliver
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++----------------------------------------------------------------------------+
+|  SETTINGS                                                                  |
++----------------------------------------------------------------------------+
+  Platform ............ Kalshi (prediction market, spelled with a K)
+  My state ............ Illinois
+  Profit milestones ... $1,000 / $5,000 / $10,000 / $25,000
+  Output folder ....... a folder named kalshi_toolkit on my Desktop
+  GitHub .............. private repo named kalshi-toolkit on my account
+  Today's date ........ look it up; do not assume
+
++----------------------------------------------------------------------------+
+|  WHAT YOU ARE GIVEN                                                        |
++----------------------------------------------------------------------------+
+The guide PDF from module 02, attached.
+
++----------------------------------------------------------------------------+
+|  THE JOB                                                                   |
++----------------------------------------------------------------------------+
+Turn the guide into a short audiobook. Rewrite it for the ear first: spell
+out numbers, turn tables and charts into sentences, and leave out the source
+list. Render it to MP3 with a natural-sounding voice. Keep the narration
+text as its own file. Tell me if you were not able to listen to the result.
+
++----------------------------------------------------------------------------+
+|  WHAT TO HAND BACK                                                         |
++----------------------------------------------------------------------------+
+The MP3, the narration text file, and the running time.
+
++----------------------------------------------------------------------------+
+|  GROUND RULES                                                              |
++----------------------------------------------------------------------------+
+  * This is general information, not financial, legal or tax advice. Say so
+    in the guide and the README.
+  * Never present a growth rate or win rate as a forecast. Label it as an
+    assumption and show what happens when it is wrong.
+  * Never ask me to paste an API key, token or password into the chat.
+  * Do not place trades, move money, send email or publish anything.
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

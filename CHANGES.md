@@ -1,15 +1,14 @@
 # Changes since the last handoff
 
-Last handoff: the 8-page PDF and the MP3.
+Last handoff: the prompts folder (master prompt and seven modules).
 
-New in this package:
-- `kalshi_log.py`: trade log script (argparse, `--log PATH`, Kalshi API, scorecard, local dashboard)
-- `trade_log_template.csv` and `sample_trade_log.csv`
-- Six templates in `templates/`
-- `prompts_used.txt`
-- `README.md`
-- `guide/audio_narration_script.txt`: the narration text, not sent before
+New:
+- `kalshi_scan.py`: market browser and screener for the Kalshi API
 
-Unchanged:
-- `guide/Kalshi_Strategy_Roadmap.pdf`
-- `guide/Kalshi_Strategy_Roadmap_Audio.mp3`
+Changed:
+- `guide/Kalshi_Strategy_Roadmap_Audio.mp3`: re-recorded in a female voice at normal pace, 10.6 minutes
+- `guide/audio_narration_script.txt`: now uses contractions so it reads the way people talk
+- `README.md`: new section for `kalshi_scan.py`, updated file table and test notes
+- `CHANGES.md`: this list
+
+Unchanged: everything else.

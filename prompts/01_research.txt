@@ -1,0 +1,72 @@
+  __  _   ___ ___ ___ ___   _   ___  ___ _  _
+ /  \/ | | _ \ __/ __| __| /_\ | _ \/ __| || |
+| () | | |   / _|\__ \ _| / _ \|   / (__| __ |
+ \__/|_| |_|_\___|___/___/_/ \_\_|_\\___|_||_|
+
+
+  KALSHI TOOLKIT  |  MODULE 1 OF 7
+  Look up the current facts, with sources.
+  Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
+
+  [RESEARCH] > guide > audio > script > docs > test > deliver
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++----------------------------------------------------------------------------+
+|  SETTINGS                                                                  |
++----------------------------------------------------------------------------+
+  Platform ............ Kalshi (prediction market, spelled with a K)
+  My state ............ Illinois
+  Profit milestones ... $1,000 / $5,000 / $10,000 / $25,000
+  Output folder ....... a folder named kalshi_toolkit on my Desktop
+  GitHub .............. private repo named kalshi-toolkit on my account
+  Today's date ........ look it up; do not assume
+
++----------------------------------------------------------------------------+
+|  WHAT YOU ARE GIVEN                                                        |
++----------------------------------------------------------------------------+
+Nothing. This is the first step.
+
++----------------------------------------------------------------------------+
+|  THE JOB                                                                   |
++----------------------------------------------------------------------------+
+I am putting together a starter kit for trading on Kalshi and I am new to it.
+Before anything gets written, I need the facts checked as of today.
+
+Kalshi's fees, rules and legal status change often, so look everything up
+today instead of relying on what you remember. I need current answers on:
+
+  * How Kalshi works, what can be traded, and whether I can make my own
+    bets (setting my own price, combos, suggesting a market).
+  * The fee formula for market orders and limit orders, deposit and
+    withdrawal costs, and interest paid on balances.
+  * Research on how real Kalshi traders have done, split by order type and
+    by contract price. Use an academic source if one exists.
+  * How profits are taxed and what forms Kalshi sends. Say where the rules
+    are unsettled.
+  * The legal status in my state, including any open court cases.
+  * Whether Kalshi has an API, what it allows without a login, what needs
+    an API key, and how requests are signed.
+
+Give a link for every claim.
+
+Be honest about what the evidence shows. If most people lose, say so plainly.
+
++----------------------------------------------------------------------------+
+|  WHAT TO HAND BACK                                                         |
++----------------------------------------------------------------------------+
+Research notes as a text file, grouped under the six questions above, with
+the date checked and a link for every claim. Flag anything you could not
+confirm.
+
++----------------------------------------------------------------------------+
+|  GROUND RULES                                                              |
++----------------------------------------------------------------------------+
+  * This is general information, not financial, legal or tax advice. Say so
+    in the guide and the README.
+  * Never present a growth rate or win rate as a forecast. Label it as an
+    assumption and show what happens when it is wrong.
+  * Never ask me to paste an API key, token or password into the chat.
+  * Do not place trades, move money, send email or publish anything.
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -

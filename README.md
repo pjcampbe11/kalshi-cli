@@ -5,8 +5,9 @@ Everything the guide refers to, in one folder.
 | File | What it is |
 |---|---|
 | `guide/Kalshi_Strategy_Roadmap.pdf` | The guide (8 pages, clickable contents) |
-| `guide/Kalshi_Strategy_Roadmap_Audio.mp3` | Audio version, 11.6 minutes |
+| `guide/Kalshi_Strategy_Roadmap_Audio.mp3` | Audio version, 10.6 minutes, female voice |
 | `guide/audio_narration_script.txt` | The text the audio was read from |
+| `kalshi_scan.py` | Market browser: find markets from the command line, then open them in the app |
 | `kalshi_log.py` | The trade log script |
 | `trade_log_template.csv` | Empty log with the right columns |
 | `sample_trade_log.csv` | 40 made-up trades so you can try `stats` and `dashboard` right away |
@@ -16,10 +17,79 @@ Everything the guide refers to, in one folder.
 | `templates/review_templates.md` | Weekly review and 100-trade block review |
 | `templates/niche_research_worksheet.md` | Data sources and rules quirks for your niche |
 | `templates/tax_records_checklist.md` | What to save for tax time |
-| `prompts_used.txt` | The prompts that built all of this |
+| `prompts/00_MASTER_PROMPT.txt` | One prompt that rebuilds the whole package |
+| `prompts/01` to `07` | The same build split into seven standalone prompts: research, guide, audio, script, docs, test, deliver |
+| `prompts_used.txt` | The original six prompts, verbatim |
 | `CHANGES.md` | What changed since the last handoff |
 
-## The script
+## Find markets: `kalshi_scan.py`
+
+Browse Kalshi without the app. It pulls every open market, lets you filter and rank them, and prints each market's ticker and kalshi.com link so you can go straight to it. It is read-only and never places an order. No API key is needed.
+
+    python kalshi_scan.py categories                          # what is open, with counts
+    python kalshi_scan.py top --category economics --top 10   # top 10 in a category
+    python kalshi_scan.py top --all --under 10 --top 20       # 20 busiest contracts under 10 cents
+    python kalshi_scan.py top --search fed rate --top 5       # keyword search
+    python kalshi_scan.py top --preset guide                  # markets that fit the guide's rules
+    python kalshi_scan.py show KXFEDDECISION-26OCT-H0         # one market in detail, live
+    python kalshi_scan.py event KXFEDDECISION-26OCT           # every outcome in one event
+    python kalshi_scan.py watch TICKER --every 60             # print a line when the price moves
+    python kalshi_scan.py open TICKER                         # open the page in your browser
+
+The first `top` or `categories` run downloads about 140,000 markets and takes 1 to 2 minutes. The list is then saved for 30 minutes, so the next queries are instant. Put `--refresh` before the command to re-download. `show`, `event` and `watch` are always live.
+
+### Filters for `top`
+
+| Group | Flags |
+|---|---|
+| What to look at | `--category NAME...`, `--skip-category NAME...`, `--search WORD...`, `--any-word`, `--exclude WORD...`, `--series TICKER...` |
+| Price in cents | `--under`, `--over`, `--min-price`, `--max-price`, `--side yes/no/either` |
+| Activity | `--min-volume-24h`, `--min-volume`, `--min-interest`, `--min-move`, `--max-spread`, `--min-spread` |
+| Timing | `--closes-within DAYS`, `--closes-after DAYS`, `--opened-within DAYS` |
+| Ranking | `--sort`, `--top N`, `--one-per-event` |
+| Output | `--csv FILE`, `--json`, `--open N` (opens the first N in your browser), `--no-links` |
+
+Categories: ai, business, commodities, companies, crypto, economics, elections, entertainment, financials, health, mentions, politics, social, sports, tech, transportation, weather, world.
+
+Sorts: hot, volume, interest, movers, gainers, losers, closing, newest, cheapest, priciest, wide-spread, tight-spread.
+
+Presets (`--preset NAME`, and any flag you add overrides it):
+
+| Preset | What it finds |
+|---|---|
+| `hot` | Most traded in the last 24 hours |
+| `longshots` | Contracts under 10 cents |
+| `favorites` | Contracts at 85 cents and up |
+| `coinflips` | Contracts between 40 and 60 cents |
+| `movers` | Biggest price change since yesterday |
+| `closing-soon` | Closing in the next 2 days |
+| `new` | Opened in the last 2 days |
+| `wide` | Bid-ask gap of 5 to 20 cents with real volume: room to post a limit order |
+| `tight` | Bid-ask gap of 2 cents or less |
+| `guide` | Fits the guide: 60 to 95 cents, closes within 30 days, active, no sports or crypto |
+
+### Reading the table
+
+- **BUY**: the side and price you would pay right now.
+- **YES b/a**: best bid and ask for YES.
+- **CHG**: change in the last price since yesterday, in cents.
+- **SPRD**: gap between bid and ask.
+- **PAYS**: what $1 becomes if that side wins, before fees.
+- **ENDS**: time until the market closes.
+- The second line is the ticker, category and link.
+
+`show` adds the fee, the break-even probability for each side, the rules and the order book.
+
+### API key as an environment variable
+
+Only the `account` command (balance and positions) needs it. In PowerShell:
+
+    setx KALSHI_API_KEY_ID "your-key-id"
+    setx KALSHI_PRIVATE_KEY_PATH "C:\path\to\kalshi-key.pem"
+
+Open a new PowerShell window afterwards. For the current window only, use `$env:KALSHI_API_KEY_ID = "..."` instead. Also run `pip install cryptography` once. Both scripts read the same two variables.
+
+## Log trades: `kalshi_log.py`
 
 Needs Python 3.9 or newer. No installs for normal use.
 
@@ -99,6 +169,9 @@ An API key can place orders on your account. Treat the key file like a password 
 The API supports it. This version leaves it out on purpose. Order code that has not been run against a real account can lose money on a bug, and the guide's method is slow, deliberate limit orders, which the app handles well. If you want it later, the safe route is to build it against Kalshi's demo environment (the script already has a `--demo` flag) and require a typed confirmation per order.
 
 ## What was tested
+
+- `kalshi_scan.py`: `categories`, `top` with every preset and filter group, `show`, `event` and `watch` against the live Kalshi API on October 10, 2026. The link format was checked against kalshi.com.
+- **Not tested:** `kalshi_scan.py account`, since it needs your key. `--open` and `open` were not run here because this build machine has no browser to launch.
 
 - `lookup`, `add` and `settle` against the live Kalshi API on October 10, 2026, using open and settled Fed markets.
 - Fee math against Kalshi's published example (100 contracts at 55 cents = $1.74).

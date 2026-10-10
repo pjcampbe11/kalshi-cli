@@ -1,0 +1,59 @@
+  __ ____   ___  ___ _    _____   _____ ___
+ /  \__  | |   \| __| |  |_ _\ \ / / __| _ \
+| () |/ /  | |) | _|| |__ | | \ V /| _||   /
+ \__//_/   |___/|___|____|___| \_/ |___|_|_\
+
+
+  KALSHI TOOLKIT  |  MODULE 7 OF 7
+  Desktop folder, zip and GitHub commands.
+  Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
+
+  research > guide > audio > script > docs > test > [DELIVER]
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
+
++----------------------------------------------------------------------------+
+|  SETTINGS                                                                  |
++----------------------------------------------------------------------------+
+  Platform ............ Kalshi (prediction market, spelled with a K)
+  My state ............ Illinois
+  Profit milestones ... $1,000 / $5,000 / $10,000 / $25,000
+  Output folder ....... a folder named kalshi_toolkit on my Desktop
+  GitHub .............. private repo named kalshi-toolkit on my account
+  Today's date ........ look it up; do not assume
+
++----------------------------------------------------------------------------+
+|  WHAT YOU ARE GIVEN                                                        |
++----------------------------------------------------------------------------+
+The finished, tested kalshi_toolkit folder.
+
++----------------------------------------------------------------------------+
+|  THE JOB                                                                   |
++----------------------------------------------------------------------------+
+  * Put the whole package in the output folder on my Desktop. Find the real
+    Desktop path first; on Windows it may not be under the home folder.
+  * Also give me a single zip of the same folder.
+  * Give me the exact commands to create the private GitHub repo and push,
+    for my operating system. Check whether git and the GitHub CLI are
+    installed and signed in, and include the sign-in steps if they are not.
+    Do not create the repo or push unless I say so.
+  * Finish with a short summary: what you built, the key numbers for each
+    milestone, the decisions you made on my behalf, and a list of what
+    changed if this is an update to an earlier build.
+
++----------------------------------------------------------------------------+
+|  WHAT TO HAND BACK                                                         |
++----------------------------------------------------------------------------+
+The folder on my Desktop, the zip, the commands, and the summary.
+
++----------------------------------------------------------------------------+
+|  GROUND RULES                                                              |
++----------------------------------------------------------------------------+
+  * This is general information, not financial, legal or tax advice. Say so
+    in the guide and the README.
+  * Never present a growth rate or win rate as a forecast. Label it as an
+    assumption and show what happens when it is wrong.
+  * Never ask me to paste an API key, token or password into the chat.
+  * Do not place trades, move money, send email or publish anything.
+
+- - - - - - - - - - - - - - - - CUT HERE - - - - - - - - - - - - - - - - - -
