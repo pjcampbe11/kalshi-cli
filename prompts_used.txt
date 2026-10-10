@@ -7,7 +7,7 @@ _  __    _    _     ____  _   _ ___   _____ ___   ___  _     _  _____ _____
 
                      M A S T E R   B U I L D   P R O M P T
         One prompt that rebuilds the whole package, start to finish.
-        Version 1.0  |  October 10, 2026  |  Author: Patrick Campbell
+        Version 1.0  |  October 10, 2026  |  Author: pjcampbe11
 
 +============================================================================+
 |  HOW TO USE THIS FILE                                                      |
