@@ -1,0 +1,39 @@
+# ============================================================================
+# requirements.txt for kalshi_cli.py
+# ============================================================================
+#
+# INSTALL EVERYTHING IN ONE LINE (run from this folder):
+#
+#     python -m pip install -r requirements.txt
+#
+# ALREADY HAVE A PACKAGE? You can leave this file alone: pip skips anything
+# that is already installed at a good-enough version. If you would rather pip
+# not touch a package at all, put a # in front of its line below to comment
+# it out, the same way these notes are commented out.
+#
+# ----------------------------------------------------------------------------
+# NOT INSTALLED BY PIP: get these first if you do not have them
+# ----------------------------------------------------------------------------
+#   Python 3.9 or newer    https://www.python.org/downloads/
+#                          Windows: tick "Add python.exe to PATH" in the installer,
+#                          or run:  winget install Python.Python.3.12
+#   Git (only to clone or update the repo)       winget install Git.Git
+#   GitHub CLI (only to create or publish it)    winget install GitHub.cli
+#
+# Check what you have:   python --version     git --version     gh --version
+#
+# ----------------------------------------------------------------------------
+# WHAT NEEDS WHAT
+# ----------------------------------------------------------------------------
+# Everything except trading runs on Python alone, with nothing from this file:
+#   categories, top, show, event, analyze, ladder, watch, open, anomalies, best,
+#   picks, grind, brief, plan, fee, watchlist, daily, examples, serve,
+#   and log init / add / settle / sold / stats
+#
+# These need the package below, because Kalshi requires every account request
+# to be signed with your private key:
+#   buy, sell, orders, cancel, positions, log fills
+# ----------------------------------------------------------------------------
+
+# Signs API requests with your Kalshi private key (RSA-PSS or Ed25519).
+cryptography>=42.0

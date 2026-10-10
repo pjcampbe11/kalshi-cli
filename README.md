@@ -9,6 +9,7 @@ The demo runs every command in the terminal and then the dashboard. The trading 
 ## Contents
 
 - [What it does and what it cannot do](#what-it-does-and-what-it-cannot-do)
+- [Install](#install)
 - [Quick start](#quick-start)
 - [The workflow](#the-workflow)
 - [Files in this repo](#files-in-this-repo)
@@ -43,9 +44,61 @@ The demo runs every command in the terminal and then the dashboard. The trading 
 
 **It cannot predict outcomes.** Every score and estimate here is arithmetic on market prices, plus one stated assumption about a known pricing pattern. Research on Kalshi found the average trader loses money. An edge exists only when your own probability is better than the market's, and the trade log is how you find out whether yours is.
 
+## Install
+
+Assuming nothing is installed yet.
+
+**1. Python 3.9 or newer.** Check with `python --version`. If it is missing:
+
+```powershell
+winget install Python.Python.3.12
+```
+
+Close and reopen PowerShell afterwards. Git and the GitHub CLI are only needed to clone or publish the repo: `winget install Git.Git` and `winget install GitHub.cli`.
+
+**2. Get the code.**
+
+```powershell
+git clone https://github.com/pjcampbe11/kalshi-toolkit.git
+cd kalshi-toolkit
+```
+
+**3. Install the dependencies.** One line, from the repo folder:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+`requirements.txt` holds one package, `cryptography`, which signs requests to your Kalshi account. Everything except trading runs without it. If you already have a package, pip skips it; to stop pip touching one at all, put a `#` in front of its line in the file.
+
+### Option: use a virtual environment
+
+A virtual environment keeps this tool's packages separate from the rest of your Python. From the repo folder:
+
+```powershell
+python -m venv .venv                         # 1. create it (once)
+.\.venv\Scripts\Activate.ps1                 # 2. turn it on (every new PowerShell window)
+python -m pip install --upgrade pip          # 3. update pip inside it
+python -m pip install -r requirements.txt    # 4. install the dependencies
+python kalshi_cli.py examples                # 5. run the tool
+deactivate                                   # when you are done
+```
+
+Your prompt shows `(.venv)` while it is on.
+
+- If step 2 says scripts are disabled, run this once and try again: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+- On macOS or Linux, step 1 is `python3 -m venv .venv` and step 2 is `source .venv/bin/activate`.
+- To start over, delete the `.venv` folder and repeat the steps. It is already in `.gitignore`.
+
+The whole thing as one line:
+
+```powershell
+python -m venv .venv; .\.venv\Scripts\Activate.ps1; python -m pip install --upgrade pip; python -m pip install -r requirements.txt
+```
+
 ## Quick start
 
-Needs Python 3.9 or newer. Nothing to install for finding, analyzing, planning or logging.
+Finding, analyzing, planning and logging need only Python.
 
 ```powershell
 python kalshi_cli.py examples          # about 75 example commands with explanations
@@ -80,6 +133,7 @@ Most commands end with an **In plain words** block that says what the numbers me
 | File | What it is |
 |---|---|
 | `kalshi_cli.py` | The tool. One file, standard library only (trading also needs `cryptography`) |
+| `requirements.txt` | The one package to install, with notes on what needs it |
 | `docs/EXAMPLES.md` | Every example command with what it does |
 | `docs/demo.gif`, `docs/dashboard.png` | The demo above and a dashboard screenshot |
 | `guide/Kalshi_Strategy_Roadmap.pdf` | The strategy guide (8 pages, clickable contents) |
@@ -337,7 +391,7 @@ python kalshi_cli.py analyze TICKER --format json
 Only trading, `orders`, `cancel`, `positions` and `log fills` need a key.
 
 1. In your Kalshi account settings, create an API key. Kalshi gives you a key ID and a private key file. Save the file somewhere private; Kalshi does not show it again.
-2. `pip install cryptography`
+2. `python -m pip install -r requirements.txt`
 3. In PowerShell:
 
 ```powershell

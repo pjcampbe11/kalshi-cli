@@ -35,6 +35,9 @@ Last handoff: `kalshi_scan.py`, the re-recorded MP3 and the README.
 
 ## New and changed files
 
+- `requirements.txt`: the one dependency, with install notes; `.gitignore` now excludes `.venv/`
+- `README.md`: new Install section with the one-line install and virtual environment steps
+
 - `docs/demo.gif`: every command, then the dashboard
 - `docs/dashboard.png`: dashboard screenshot
 - `docs/EXAMPLES.md`: 77 example commands with explanations

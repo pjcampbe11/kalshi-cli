@@ -210,6 +210,12 @@ Build everything the guide refers to, so nothing in it is left as homework.
   f) .gitignore. Keep my real trade log, API key files, raw fills and the
      dashboard out of Git. The template and sample log stay tracked.
 
+  g) requirements.txt. Assume nothing is installed. List every package the
+     tool needs, say which commands need each, note what pip cannot
+     install (Python, Git), and say that a line can be commented out for
+     a package I already have. In the README give the one-line install
+     and the steps to set up a virtual environment on Windows.
+
 +----------------------------------------------------------------------------+
 |  6. TEST BEFORE YOU HAND IT OVER                                           |
 +----------------------------------------------------------------------------+
@@ -262,6 +268,7 @@ I want proof it works, not a claim that it should.
   |-- README.md
   |-- CHANGES.md
   |-- .gitignore
+  |-- requirements.txt
   |-- kalshi_cli.py                   <-- the one tool
   |-- trade_log_template.csv
   |-- sample_trade_log.csv

@@ -74,7 +74,7 @@ SAFETY
 
 REQUIREMENTS
   * Python 3.9+. Standard library only for everything except trading.
-  * Trading and account commands need an API key and:  pip install cryptography
+  * Trading and account commands need an API key and:  python -m pip install -r requirements.txt
 
 API KEY AS ENVIRONMENT VARIABLES (Windows PowerShell)
       setx KALSHI_API_KEY_ID "your-key-id"
@@ -370,7 +370,7 @@ def load_auth(required=False):
             _auth = (key_id, serialization.load_pem_private_key(fh.read(), password=None))
     except ImportError:
         if required:
-            sys.exit("Signing requests needs the cryptography package:  pip install cryptography")
+            sys.exit("Signing requests needs the cryptography package:  python -m pip install -r requirements.txt")
     except OSError as err:
         if required:
             sys.exit(f"Could not read the key file: {err}")
@@ -2251,9 +2251,9 @@ def cmd_ladder(a):
                    for _, chance, lo, hi in buckets)
         print()
         if median_at is not None:
-            print(f"  {paint('Implied median', 'gray')}  {paint(f'{median_at:g}', 'bold')}"
+            print(f"  {paint('Implied median', 'gray')}  {paint(f'{median_at:.2f}', 'bold')}"
                   f"   {paint('Implied average', 'gray')}  about {mean:.2f}")
-            words.append(f"The market's central guess is about {median_at:g}: half the money says higher, half says lower.")
+            words.append(f"The market's central guess is about {median_at:.2f}: half the money says higher, half says lower.")
         likely = max(buckets, key=lambda b: b[1])
         words.append(f"The single most likely outcome is \"{likely[0]}\" at {likely[1]:.0f}%.")
         if kinks:

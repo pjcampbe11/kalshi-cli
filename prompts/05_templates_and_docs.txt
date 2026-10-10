@@ -48,6 +48,12 @@ from the script. Keep each file short enough to use, not to study.
   f) .gitignore. Keep my real trade log, API key files, raw fills and the
      dashboard out of Git. The template and sample log stay tracked.
 
+  g) requirements.txt. Assume nothing is installed. List every package the
+     tool needs, say which commands need each, note what pip cannot
+     install (Python, Git), and say that a line can be commented out for
+     a package I already have. In the README give the one-line install
+     and the steps to set up a virtual environment on Windows.
+
 +----------------------------------------------------------------------------+
 |  WHAT TO HAND BACK                                                         |
 +----------------------------------------------------------------------------+
