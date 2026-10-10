@@ -22,6 +22,9 @@ FIND AN EDGE
                     ranks by the best chance of winning instead
   grind             compound a small stake through a chain of likely winners,
                     with the honest odds of the whole chain
+  multiply          turn $10 / $20 / $100 into 2x / 3x / 5x / 10x inside a week:
+                    a single bet, a chain of bets, or a spread of bets, with
+                    the honest odds of each and the orders to place
   picks             a diversified random draw from the best, with basket odds
 
 DECIDE
@@ -43,7 +46,7 @@ KEEP SCORE
 
 HELP
   firehose          run EVERY command and bind the output into one color PDF
-  examples          about 80 example commands with what each does
+  examples          about 90 example commands with what each does
   serve             the dashboard, at http://127.0.0.1:8765
 
 FROM FINDING TO BUYING
@@ -2709,6 +2712,344 @@ def cmd_grind(a):
 
 
 # ----------------------------------------------------------------------------
+# Multiply: turn a stake into 2x / 3x / 5x / 10x inside a week
+# ----------------------------------------------------------------------------
+# You say how much you want to put down and what multiple you want back. The
+# tool then lays out up to three ways to try for it, side by side:
+#
+#   SINGLE  one bet. A contract priced near 100 / multiple cents. A 5x needs a
+#           contract at about 20c: it pays $1, so every 20c becomes 100c.
+#   CHAIN   several bets in a row. Each one is far more likely than the single
+#           bet, but ALL of them have to win, and the winnings of one are the
+#           stake of the next. Two 70c winners in a row is roughly a 2x.
+#   SPREAD  several bets at once. The stake is split across cheaper longshots,
+#           sized so that ANY ONE of them winning pays the whole target.
+#
+# THE HONEST PART: none of these beats arithmetic. At fair prices a 5x comes in
+# about one time in five whichever way it is sliced, and fees shave a little
+# off that. What the routes change is the SHAPE of the risk (one coin flip, a
+# run of likely wins, or several lottery tickets), not the odds of the result.
+#
+# Everything must resolve inside the window: --days, default 3, never above 7.
+
+MULTIPLY_DEFAULT_DAYS = 3.0     # how far ahead to look when --days is not given
+MULTIPLY_MAX_DAYS = 7.0         # the hard ceiling; a longer --days is cut back to this
+MULTIPLY_COLUMNS = ["route", "leg", "ticker", "title", "category", "buy_side", "limit_price", "count", "cost",
+                    "pays", "est_prob", "mid", "close_time", "url"]
+
+
+def parse_multiple(text):
+    """Read '5x', '5X', 'x5' or plain '5' as the number 5.0. Used as the argparse type for the multiple."""
+    cleaned = str(text).lower().replace("x", "").strip()
+    try:
+        value = float(cleaned)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{text}' is not a multiple. Write it like 2x, 3x, 5x or 10x.")
+    if not 1.1 <= value <= 50:
+        raise argparse.ArgumentTypeError("the multiple must be between 1.1x and 50x.")
+    return value
+
+
+def multiply_pool(rows, a, days):
+    """Every side of every market that is tradable now and resolves inside the window, with its real cost."""
+    wanted = {CATEGORIES[c].lower() for c in (a.category or [])}
+    skipped = {CATEGORIES[c].lower() for c in (a.skip_category if a.skip_category is not None else ["sports", "crypto"])}
+    pool = []
+    for m in rows:
+        category = m["category"].lower()
+        if (wanted and category not in wanted) or (not wanted and category in skipped):
+            continue
+        if m["hours_left"] is None or not (0.5 <= m["hours_left"] <= days * 24) or m["vol24"] < a.min_volume_24h:
+            continue
+        for side in ("yes", "no"):
+            bid, ask = m[side + "_bid"], m[side + "_ask"]
+            if bid is None or ask is None or not (1 <= ask <= 98) or ask - bid > a.max_spread:
+                continue
+            mid = (bid + ask) / 2.0
+            fee = taker_fee_cents(ask)          # these routes need a certain fill, so they pay the ask and the fee
+            cost_c = ask + fee                  # what one contract really costs, in cents
+            pool.append({**m, "buy_side": side.upper(), "buy_price": ask, "limit_price": ask, "fee": fee, "mid": mid,
+                         "cost_c": cost_c, "est_prob": estimated_probability(mid, a.bias),
+                         "value": estimated_probability(mid, a.bias) / cost_c})   # expected cents back per cent paid
+    return pool, skipped
+
+
+def multiply_single(pool, stake, multiple, top):
+    """One-bet route: contracts that pay at least the multiple, but not wildly more than was asked for."""
+    highest_cost = 100.0 / multiple              # pay more than this per contract and it cannot return the multiple
+    lowest_cost = 100.0 / (multiple * 1.5)       # cheaper than this is a bigger longshot than was asked for
+    found, seen = [], set()
+    for m in sorted(pool, key=lambda m: (-m["value"], -m["vol24"])):
+        if not (lowest_cost <= m["cost_c"] <= highest_cost) or m["event"] in seen:
+            continue
+        count = int(stake * 100 // m["cost_c"])
+        if count < 1:
+            continue
+        seen.add(m["event"])
+        cost = count * m["cost_c"] / 100.0
+        found.append({**m, "route": "single", "leg": 1, "count": count, "cost": cost, "pays": float(count)})
+        if len(found) >= top:
+            break
+    return found
+
+
+def multiply_chain(pool, stake, multiple, legs, days):
+    """
+    Several-bets-in-a-row route. Returns the legs, or [] when no chain fits.
+
+    The window is cut into `legs` equal slots and one bet is taken from each
+    slot, so each bet has time to pay out before the next is placed. Every leg
+    aims for the same share of the climb: a 5x in 2 legs needs about 2.24x per
+    leg, which is a contract near 45c.
+    """
+    target, bank, clock, used, chain = stake * multiple, stake, 0.0, set(), []
+    slot = days * 24.0 / legs
+    for i in range(legs):
+        left = legs - i
+        need = target / bank                                   # the multiple still to go
+        want_cost = 100.0 / (need ** (1.0 / left))             # cost per contract that shares the rest evenly
+        last = left == 1
+        options = [m for m in pool if m["event"] not in used and m["hours_left"] > clock + 4      # 4 hours for the earlier bet to pay out
+                   and (last or m["hours_left"] <= slot * (i + 1))]
+        if last:
+            # The final leg has to actually reach the target with whole contracts. Among those that do,
+            # take the most likely one, which is the most expensive contract that still gets there.
+            reach = []
+            for m in options:
+                count = int(bank * 100 // m["cost_c"])
+                if count >= 1 and bank - count * m["cost_c"] / 100.0 + count >= target - 0.005:
+                    reach.append((m, count))
+            if not reach:
+                return []
+            pick, count = max(reach, key=lambda mc: (mc[0]["est_prob"], mc[0]["vol24"]))
+        else:
+            near = [m for m in options if abs(m["cost_c"] - want_cost) <= 8]
+            if not near:
+                return []
+            # Closest to the wanted price first (in 3-cent steps), then the better value, then the sooner one.
+            pick = min(near, key=lambda m: (round(abs(m["cost_c"] - want_cost) / 3.0), -m["value"], m["hours_left"]))
+            count = int(bank * 100 // pick["cost_c"])
+            if count < 1:
+                return []
+        cost = count * pick["cost_c"] / 100.0
+        after = bank - cost + count                            # unspent cents ride along; each winner pays $1
+        chain.append({**pick, "route": f"chain-{legs}", "leg": i + 1, "count": count, "cost": cost,
+                      "pays": float(count), "before": bank, "after": after})
+        used.add(pick["event"])
+        clock, bank = pick["hours_left"], after
+    return chain
+
+
+def multiply_spread(pool, stake, multiple, shots):
+    """
+    Several-bets-at-once route. Returns the shots, or [] when none fit.
+
+    Buy the SAME number of contracts in each market: enough that one winner
+    alone pays the target. With N contracts in each, the stake covers a
+    combined price of stake / N per contract, shared between the shots.
+    """
+    count = int(math.ceil(stake * multiple - 1e-9))            # contracts per shot; each winner pays $1
+    budget = stake * 100.0 / count                             # combined cents the shots may cost per contract
+    picked, used_events, used_categories = [], set(), set()
+    for i in range(shots):
+        left = shots - i
+        share = budget / left                                  # an even share of what is still unspent
+        low, high = (share * 0.6, budget) if left == 1 else (share * 0.6, min(share * 1.25, budget - 1.0 * (left - 1)))
+        options = [m for m in pool if m["event"] not in used_events and low <= m["cost_c"] <= high]
+        if not options:
+            return []
+        # Prefer a category not used yet, so the shots are less likely to hang on the same news.
+        pick = max(options, key=lambda m: (m["category"] not in used_categories, m["value"], m["vol24"]))
+        picked.append({**pick, "route": f"spread-{shots}", "leg": i + 1, "count": count,
+                       "cost": count * pick["cost_c"] / 100.0, "pays": float(count)})
+        used_events.add(pick["event"])
+        used_categories.add(pick["category"])
+        budget -= pick["cost_c"]
+    return picked
+
+
+def route_summary(name, legs, stake, multiple):
+    """Cost, payout and chance of one route, under the tool's estimate and under plain market prices."""
+    est = [m["est_prob"] / 100.0 for m in legs]
+    fair = [m["mid"] / 100.0 for m in legs]
+    if name == "single":
+        cost, pays, p_est, p_fair = legs[0]["cost"], legs[0]["pays"], est[0], fair[0]
+        how = "it wins"
+    elif name == "chain":
+        cost, pays = legs[0]["cost"], legs[-1]["after"]
+        p_est, p_fair = math.prod(est), math.prod(fair)
+        how = f"all {len(legs)} win"
+    else:
+        cost, pays = sum(m["cost"] for m in legs), legs[0]["pays"]
+        p_est, p_fair = 1 - math.prod(1 - p for p in est), 1 - math.prod(1 - p for p in fair)
+        how = f"any 1 of {len(legs)} wins"
+    # Expected result per attempt. For the spread, two winners pay double, so count every winner.
+    expected = (sum(p * m["pays"] for p, m in zip(est, legs)) if name == "spread" else p_est * pays) - cost
+    return {"name": name, "legs": legs, "bets": len(legs), "cost": cost, "pays": pays, "p_est": p_est, "p_fair": p_fair,
+            "how": how, "expected": expected, "hours": max(m["hours_left"] for m in legs), "x": pays / cost if cost else 0}
+
+
+def cmd_multiply(a):
+    """Lay out single-bet and multi-bet ways to turn a stake into a chosen multiple inside a week."""
+    days = a.days
+    note = ""
+    if days > MULTIPLY_MAX_DAYS:                              # the window is never allowed past a week
+        note, days = f"--days {a.days:g} is over the {MULTIPLY_MAX_DAYS:g}-day limit, so {MULTIPLY_MAX_DAYS:g} was used.", MULTIPLY_MAX_DAYS
+    if days < 0.1:
+        sys.exit("--days must be more than 0.1.")
+    if a.stake <= 0:
+        sys.exit("--stake is the dollars you want to put down, e.g. --stake 10.")
+    multiple, stake, target = a.multiple, a.stake, a.stake * a.multiple
+    want = {"single": {"single"}, "multi": {"chain", "spread"}, "chain": {"chain"}, "spread": {"spread"},
+            "all": {"single", "chain", "spread"}}[a.route]
+
+    rows = add_clock_fields(load_markets(a.cache_minutes, a.refresh))
+    pool, skipped = multiply_pool(rows, a, days)
+
+    # ---- build each route ----
+    singles = multiply_single(pool, stake, multiple, a.top) if "single" in want else []
+    chain = []
+    if "chain" in want:
+        # Try every chain length allowed and keep the one most likely to come in.
+        tries = [multiply_chain(pool, stake, multiple, n, days) for n in range(2, a.max_bets + 1)]
+        tries = [t for t in tries if t]
+        chain = max(tries, key=lambda t: math.prod(m["est_prob"] / 100.0 for m in t)) if tries else []
+    spread = []
+    if "spread" in want:
+        tries = [multiply_spread(pool, stake, multiple, n) for n in range(2, a.max_bets + 1)]
+        tries = [t for t in tries if t]
+        spread = max(tries, key=lambda t: 1 - math.prod(1 - m["est_prob"] / 100.0 for m in t)) if tries else []
+
+    everything = singles + chain + spread
+    save_last(everything)                                     # so `show 3` and `buy 3 --take` work on any row below
+    if emit(everything, MULTIPLY_COLUMNS, a.format, a.out):
+        return
+
+    # ---- header ----
+    print(banner("KALSHI", paint(f"multiply ${stake:g} by {multiple:g}x", "bold")
+                 + paint(f"  =  ${target:,.2f} back, inside {days:g} day{'s' if days != 1 else ''}", "gray")))
+    print(paint("screen:    ", "gray") + f"resolves within {days:g}d (limit {MULTIPLY_MAX_DAYS:g}d)  |  24h vol >= {a.min_volume_24h:g}  |  "
+          f"spread <= {a.max_spread:g}c  |  " + ("only " + ", ".join(a.category) if a.category else "no " + ", ".join(sorted(skipped))))
+    print(paint("candidates: ", "gray") + f"{len(pool):,} tradable sides resolve in the window"
+          + paint(f"   a fair {multiple:g}x comes in {1 / multiple:.0%} of the time", "gray"))
+    if note:
+        print(paint(note, "yellow"))
+    if not everything:
+        print("\n" + paint("Nothing fits.", "yellow", "bold") + " Raise --days (up to 7), lower --min-volume-24h, widen --max-spread, "
+              "or pass --skip-category with no names to include sports and crypto.")
+        return
+
+    width = shutil.get_terminal_size((120, 30)).columns
+    title_w = max(22, min(56, width - 76))
+    head = paint(f"{'#':>3} {'ORDER':<18} {'COST':>8} {'PAYS':>8} {'WINS':>6} {'MKT':>5} {'ENDS':>5}  MARKET", "bold", "cyan")
+    row_no = [0]                                              # one running row number across all three sections
+
+    def line(m, extra=""):
+        """One bet: what to buy, what it costs, what it pays, and how likely it is."""
+        row_no[0] += 1
+        order = cell(f"{m['count']} {m['buy_side']} @ {m['buy_price']:g}c", 18, *side_style(m["buy_side"]))
+        title = m["title"] if len(m["title"]) <= title_w else m["title"][:title_w - 3] + "..."
+        cut = title.rfind(" [")
+        title = paint(title, "bold") if cut <= 0 else paint(title[:cut], "bold") + paint(title[cut:], "cyan")
+        print(f"{cell(row_no[0], 3, 'gray', align='>')} {order} {'$' + format(m['cost'], ',.2f'):>8} "
+              f"{paint(('$' + format(m['pays'], ',.2f')).rjust(8), 'green', 'bold')} {m['est_prob']:>5.1f}% {m['mid']:>4.0f}% "
+              f"{time_left(m['hours_left']):>5}  {title}{extra}")
+        if not a.no_links:
+            print(f"    {paint(m['ticker'], 'cyan')}  {category_tag(m['category'])}  {paint(m['url'], 'blue', 'ul')}")
+
+    summaries = []
+
+    # ---- route 1: one bet ----
+    if "single" in want:
+        print("\n" + paint(" SINGLE BET ", "bold", "green", "inv") + paint(f"  one contract near {100 / multiple:.0f}c. It wins or it does not.", "gray"))
+        if singles:
+            print(head)
+            print(rule(min(width - 1, 62 + title_w)))
+            for m in singles:
+                line(m)
+            summaries.append(route_summary("single", singles[:1], stake, multiple))
+        else:
+            print(paint(f"  No contract priced {100 / (multiple * 1.5):.0f}-{100 / multiple:.0f}c passes the screen in this window.", "yellow"))
+
+    # ---- route 2: bets in a row ----
+    if "chain" in want:
+        print("\n" + paint(" CHAIN ", "bold", "yellow", "inv") + paint("  bets in a row. Each win is the stake for the next. All must win.", "gray"))
+        if chain:
+            print(head)
+            print(rule(min(width - 1, 62 + title_w)))
+            for m in chain:
+                line(m, paint(f"   ${m['before']:,.2f} -> ${m['after']:,.2f}", "gray"))
+            summaries.append(route_summary("chain", chain, stake, multiple))
+        else:
+            print(paint("  No chain of likely winners fits the window. Try --days 7 or --max-bets 4.", "yellow"))
+
+    # ---- route 3: bets at once ----
+    if "spread" in want:
+        print("\n" + paint(" SPREAD ", "bold", "magenta", "inv") + paint("  bets placed together. Any one winner pays the whole target.", "gray"))
+        if spread:
+            print(head)
+            print(rule(min(width - 1, 62 + title_w)))
+            for m in spread:
+                line(m)
+            summaries.append(route_summary("spread", spread, stake, multiple))
+        else:
+            print(paint("  No set of longshots fits the stake. Try --days 7 or a lower --min-volume-24h.", "yellow"))
+
+    if not summaries:
+        return
+
+    # ---- side by side ----
+    print("\n" + paint("  SIDE BY SIDE", "bold", "cyan") + paint(f"  each route trying to turn ${stake:g} into ${target:,.2f}", "gray"))
+    print(paint(f"  {'ROUTE':<8} {'BETS':>4} {'YOU PUT IN':>11} {'YOU GET':>9} {'RETURN':>7} {'CHANCE':>7} {'AT MKT PRICE':>13} "
+                f"{'AVG RESULT':>11} {'DONE IN':>8}  WORKS WHEN", "bold", "cyan"))
+    best = max(summaries, key=lambda s: s["p_est"])
+    for s in summaries:
+        tone = "green" if s is best else "white"
+        chance = format(s["p_est"], ".0%")                     # worked out first so the line below stays valid on Python 3.9
+        print(f"  {cell(s['name'], 8, tone, 'bold')} {s['bets']:>4} {'$' + format(s['cost'], ',.2f'):>11} {'$' + format(s['pays'], ',.2f'):>9} "
+              f"{s['x']:>6.1f}x {cell(chance, 7, tone, 'bold', align='>')} {s['p_fair']:>12.0%} "
+              f"{money_cell(s['expected'], 11)} {time_left(s['hours']):>8}  {s['how']}")
+    print("  " + bar(best["p_est"], 40, "green") + paint(f"  {best['name']}: about {best['p_est']:.0%}", "gray"))
+
+    # ---- ready-to-run orders ----
+    cap = order_cap()
+    print("\n" + paint("  ORDERS", "bold", "cyan") + paint("  dry runs. Nothing is sent until you add --live and type the word.", "gray"))
+
+    def order_line(m):
+        over = f" --max-cost {math.ceil(m['count'] * m['buy_price'] / 100.0)}" if m["count"] * m["buy_price"] / 100.0 > cap else ""
+        return (f"python kalshi_cli.py buy {m['ticker']} --side {m['buy_side'].lower()} --price {m['buy_price']:g} "
+                f"--count {m['count']} --take{over}")
+
+    for s in summaries:
+        label = {"single": "single bet (row 1; any other row works the same way)",
+                 "chain": "chain: place the first now. Place each later one only after the one before it pays out",
+                 "spread": "spread: place all of these together"}[s["name"]]
+        print(paint(f"  {label}", "gray"))
+        for m in s["legs"]:
+            print("    " + paint(order_line(m), "bold"))
+
+    words = [
+        f"A {multiple:g}x means risking ${stake:g} to get ${target:,.2f}. If prices are fair that works {1 / multiple:.0%} of the time, "
+        f"and fails the other {1 - 1 / multiple:.0%}, whichever route is used.",
+        f"Highest estimated chance here: {best['name']}, about {best['p_est']:.0%}. The differences between routes are small "
+        f"and come from the price-bias assumption, not from knowing the outcomes.",
+        ("The chain has the likeliest individual bets, but one miss ends it. Later legs are sized from today's prices and "
+         "will have moved by the time you get there, so re-run before each one." if chain else ""),
+        ("The spread assumes its markets are unrelated. If they hang on the same news they win or lose together, and the "
+         "real chance is lower than shown." if spread else ""),
+        ("Some of these are under 15 cents. That is the guide's longshot zone, where buyers have lost the most on average."
+         if any(m["buy_price"] < 15 for m in everything) else ""),
+        (f"These need up to {max(m['count'] for m in everything):,} contracts at the ask. Check there is that much for sale "
+         f"with `analyze N --deep` before sending anything." if max(m["count"] for m in everything) >= 100 else ""),
+        "AVG RESULT is the average gain or loss per attempt under the tool's estimate. Under plain market prices it is "
+        "always a small loss, because every route pays the taker fee.",
+    ]
+    plain_words(words)
+    print("\n" + paint("Next: ", "gray") + paint("show 1", "bold") + paint("   analyze 1 --deep", "bold") + paint("   buy 1 --take", "bold")
+          + paint("  (row numbers run across all three sections)", "gray"))
+
+
+# ----------------------------------------------------------------------------
 # Trade log and scorecard  (the `log` commands)
 # ----------------------------------------------------------------------------
 # One CSV file holds every trade you make. The scorecard judges it against the
@@ -3280,6 +3621,14 @@ EXAMPLES = [
     ("Find an edge", "grind --start 10 --target 40", "Chain likely winners to compound $10 toward $40, with the real odds of the whole chain."),
     ("Find an edge", "grind --start 10 --target 16 --stake 50 --closes-within 2", "A shorter climb, risking half the bankroll per step instead of all of it."),
     ("Find an edge", "grind --start 25 --target 100 --min-price 90 --skip-category", "Only 90c-and-up favorites, with sports and crypto included."),
+    ("Find an edge", "multiply 2x --stake 10", "Ways to turn $10 into $20 within three days: one bet, a chain of bets, and a spread of bets, side by side with the odds of each."),
+    ("Find an edge", "multiply 3x --stake 20", "The same for $20 into $60. The single bet is a contract near 33c; the chain is two or three likelier bets in a row."),
+    ("Find an edge", "multiply 5x --stake 20 --days 5", "Aim for 5x and let the bets run up to five days out instead of the default three."),
+    ("Find an edge", "multiply 10x --stake 100 --days 7", "$100 into $1,000 over the longest window allowed. Seven days is the ceiling; a bigger number is cut back to 7."),
+    ("Find an edge", "multiply 5x --stake 10 --route single --top 10", "Only the one-bet route: the ten best contracts that pay 5x or a little more."),
+    ("Find an edge", "multiply 3x --stake 20 --route multi --max-bets 4", "Only the several-bet routes, allowing up to four bets in the chain or the spread."),
+    ("Find an edge", "multiply 2x --stake 100 --route chain --category weather economics", "A 2x built only from bets in a row, inside two categories."),
+    ("Find an edge", "x 5x -s 20 -d 2 --format json --out multiply.json", "Short form of the command, with the bets written to a file for a spreadsheet or script."),
     ("Find an edge", "picks --top 10 --bankroll 500", "Ten picks as a weighted random draw from the best 60, one per event, with basket odds."),
     ("Find an edge", "picks --top 5 --seed 7", "Fix the random draw so the same five come back."),
     ("Find an edge", "picks --top 5 --bias 0", "Turn the pricing-pattern adjustment off: what the picks look like if the market is simply right."),
@@ -3367,7 +3716,7 @@ ANSI_RE = re.compile(r"\x1b\[([0-9;]*)m")
 URL_RE = re.compile(r"(https?://[^\s<]+)")
 TICKER_SPAN_RE = re.compile(r'<span class="a96">([A-Z0-9][A-Z0-9._-]{4,})</span>')
 
-RUNNABLE = {"categories", "top", "picks", "best", "grind", "anomalies", "ladder", "show", "analyze", "event", "plan", "brief",
+RUNNABLE = {"categories", "top", "picks", "best", "grind", "multiply", "x", "anomalies", "ladder", "show", "analyze", "event", "plan", "brief",
             "watchlist", "daily", "examples", "fee", "buy", "sell", "orders", "cancel", "positions", "log", "open", "watch"}
 
 
@@ -3480,6 +3829,9 @@ a{color:inherit} .tk{cursor:pointer;border-bottom:1px dotted #29d9e6} .tk:hover{
   <div class="row"><input id="bank" value="500"></div>
   <label>Grind: compound from $ to $</label>
   <div class="row"><input id="gs" value="10"><input id="gt" value="40"><button id="bgrind">Grind</button></div>
+  <label>Multiply: stake $, target, days (max 7)</label>
+  <div class="row"><input id="ms" value="10"><select id="mx"><option>2x</option><option>3x</option><option>5x</option><option>10x</option></select><input id="md" value="3"></div>
+  <div class="row"><select id="mr"><option value="all">single + multi</option><option value="single">single bet</option><option value="multi">multiple bets</option></select><button id="bmult">Multiply</button></div>
   <div class="row"><button data-c="best 5 --by odds">Best odds 5</button><button data-c="best 5 --by soonest">Soonest 5</button></div>
 
   <h2>SELECTED MARKET</h2>
@@ -3555,6 +3907,7 @@ $("bq").onclick=()=>{if($("q").value.trim())run("top --search "+$("q").value.tri
 $("q").onkeydown=e=>{if(e.key=="Enter")$("bq").click();};
 $("bpicks").onclick=()=>run("picks --top "+$("n").value+" --bankroll "+($("bank").value||500)+($("cat").value?" --category "+$("cat").value:""));
 $("bgrind").onclick=()=>run("grind --start "+($("gs").value||10)+" --target "+($("gt").value||40)+($("cat").value?" --category "+$("cat").value:""));
+$("bmult").onclick=()=>run("multiply "+$("mx").value+" --stake "+($("ms").value||10)+" --days "+Math.min(7,parseFloat($("md").value)||3)+" --route "+$("mr").value+($("cat").value?" --category "+$("cat").value:""));
 $("bplan").onclick=()=>{const k=need();if(!k)return;if(!$("prob").value){$("prob").focus();return;}run("plan "+k+" --my-prob "+$("prob").value+" --bankroll "+($("bank").value||500));};
 function order(kind){const k=need();if(!k)return;let c=kind+" "+k+" --side "+$("side").value;
   if($("price").value)c+=" --price "+$("price").value;if($("count").value)c+=" --count "+$("count").value;
@@ -3908,6 +4261,9 @@ def cmd_firehose(a):
     step(["best", "5", "--by", "soonest", "--bankroll", bank], sections)
     step(["grind", "--start", "10", "--target", "40"], sections)
     step(["grind", "--start", "10", "--target", "20", "--stake", "50"], sections)
+    step(["multiply", "2x", "--stake", "10"], sections)
+    step(["multiply", "5x", "--stake", "20", "--days", "5"], sections)
+    step(["multiply", "10x", "--stake", "100", "--days", "7", "--route", "multi"], sections)
     step(["best", "5", "--bankroll", bank], sections)
 
     # ---- 3. one market, all the way down. Use the one named, or the top-scoring pick just listed. ----
@@ -4228,6 +4584,31 @@ def build_parser():
     e.add_argument("--bias", type=float, default=1.0, metavar="X", help="strength of the favorite-longshot adjustment (0 = trust the price)")
     e.add_argument("--no-links", action="store_true", help="hide the ticker/link line")
     e.set_defaults(func=cmd_grind)
+
+    e = sub.add_parser("multiply", aliases=["x"], help="turn a stake into 2x / 3x / 5x / 10x inside a week: one bet or several",
+                       description="Say what you want to put down and the multiple you want back. Lays out a single bet, a chain "
+                                   "of bets in a row, and a spread of bets placed together, with the real odds of each and the "
+                                   "orders to place. Everything resolves inside --days, which is never more than 7.")
+    e.add_argument("multiple", nargs="?", type=parse_multiple, default=2.0, metavar="MULTIPLE",
+                   help="the return you are after: 2x (default), 3x, 5x, 10x, or any number from 1.1 to 50")
+    e.add_argument("--stake", "-s", type=float, default=10, metavar="USD", help="dollars to put down: 10 (default), 20, 100...")
+    e.add_argument("--days", "-d", type=float, default=MULTIPLY_DEFAULT_DAYS, metavar="N",
+                   help="everything must resolve within N days (default 3, never more than 7)")
+    e.add_argument("--route", "-r", choices=["all", "single", "multi", "chain", "spread"], default="all",
+                   help="all (default), single = one bet, multi = chain and spread, chain = bets in a row, spread = bets at once")
+    e.add_argument("--max-bets", type=int, default=3, choices=[2, 3, 4], metavar="N",
+                   help="most bets a chain or spread may use: 2, 3 (default) or 4")
+    e.add_argument("--top", "-n", type=int, default=5, metavar="N", help="how many single bets to list (default 5)")
+    e.add_argument("--min-volume-24h", type=float, default=300, metavar="N", help="at least N contracts traded in 24h (default 300)")
+    e.add_argument("--max-spread", type=float, default=4, metavar="CENTS", help="widest bid-ask gap to accept (default 4)")
+    e.add_argument("--category", "-c", nargs="+", choices=sorted(CATEGORIES), metavar="NAME", help="only these categories")
+    e.add_argument("--skip-category", nargs="*", choices=sorted(CATEGORIES), metavar="NAME",
+                   help="leave these out (default: sports crypto; pass with no names to include everything)")
+    e.add_argument("--bias", type=float, default=1.0, metavar="X", help="strength of the favorite-longshot adjustment (0 = trust the price)")
+    e.add_argument("--no-links", action="store_true", help="hide the ticker/link line")
+    e.add_argument("--format", "-f", choices=["table", "json", "csv", "markdown"], default="table")
+    e.add_argument("--out", "-o", metavar="FILE", help="with --format json/csv/markdown: write to this file")
+    e.set_defaults(func=cmd_multiply)
 
     e = sub.add_parser("fee", help="fee calculator for one order")
     e.add_argument("--price", required=True, type=float, metavar="CENTS")

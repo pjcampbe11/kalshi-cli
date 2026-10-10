@@ -71,6 +71,11 @@ the current order endpoint.
          simulated basket
        - grind: compound a small stake through a chain of likely winners,
          and show the real odds of the whole chain under several stakes
+       - multiply: I give a stake ($10, $20, $100) and a multiple (2x, 3x,
+         5x, 10x). Show a single bet, a chain of bets in a row, and a
+         spread of bets placed together, side by side, each with its real
+         odds and the orders to place. Everything must resolve within a
+         number of days I choose: default 3, never more than 7.
 
      DECIDE
        - brief: write a research prompt I can give an AI assistant

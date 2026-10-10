@@ -13,7 +13,7 @@ It does not predict outcomes and it is not financial advice. Research on Kalshi 
 No coding needed. Two PDFs you can open right now:
 
 - **[The strategy guide](guide/Kalshi_Strategy_Roadmap.pdf)** (8 pages). How Kalshi works, what it realistically takes to reach $1,000 to $25,000 in profit, what to trade, what to avoid, and how to size your bets. There is also a [10-minute audio version](guide/Kalshi_Strategy_Roadmap_Audio.mp3).
-- **[A sample "firehose" report](docs/firehose_sample.pdf)** (53 pages). This is what the tool produces when one command runs everything it can do: the busiest markets, the biggest movers, prices that don't add up, top picks, and one market taken all the way down to its order book. It is a snapshot of live data from October 10, 2026.
+- **[A sample "firehose" report](docs/firehose_sample.pdf)** (61 pages). This is what the tool produces when one command runs everything it can do: the busiest markets, the biggest movers, prices that don't add up, top picks, and one market taken all the way down to its order book. It is a snapshot of live data from October 10, 2026.
 
 GitHub previews both in the browser. Click the download button on the PDF's page to get the clickable table of contents and full-quality color.
 
@@ -27,7 +27,7 @@ One Python file, standard library only. Trading is the one part that needs an ex
 git clone https://github.com/pjcampbe11/kalshi-toolkit.git
 cd kalshi-toolkit
 python -m pip install -r requirements.txt      # only needed for trading
-python kalshi_cli.py examples                  # 80 example commands, explained
+python kalshi_cli.py examples                  # about 90 example commands, explained
 python kalshi_cli.py best 3                    # the three top-scoring markets
 python kalshi_cli.py firehose --open           # everything, as one color PDF
 python kalshi_cli.py serve                     # dashboard at http://127.0.0.1:8765
@@ -146,9 +146,10 @@ python -m venv .venv; .\.venv\Scripts\Activate.ps1; python -m pip install --upgr
 Finding, analyzing, planning and logging need only Python.
 
 ```powershell
-python kalshi_cli.py examples          # about 75 example commands with explanations
+python kalshi_cli.py examples          # about 90 example commands with explanations
 python kalshi_cli.py categories        # what is open
 python kalshi_cli.py best 3            # the three top-scoring markets
+python kalshi_cli.py multiply 5x --stake 20   # ways to turn $20 into $100 within 3 days
 python kalshi_cli.py serve             # the dashboard at http://127.0.0.1:8765
 ```
 
@@ -339,6 +340,30 @@ Options: `--start USD` (10), `--target USD` (40), `--stake PCT` of bankroll per 
 
 The arithmetic to know before using it: each step is likely, but the chain is only as likely as all its steps multiplied together. At fair prices, turning $10 into $40 succeeds about 25% of the time however it is sliced, and every step pays a fee. `grind` shows that plainly instead of hiding it.
 
+#### `multiply [MULTIPLE]` (also `x`)
+
+You name a stake and the return you want. It finds bets that resolve inside a few days and lays out up to three ways to try for it, side by side.
+
+```powershell
+python kalshi_cli.py multiply 2x --stake 10              # $10 into $20, default 3-day window
+python kalshi_cli.py multiply 5x --stake 20 --days 5     # $20 into $100, up to 5 days out
+python kalshi_cli.py multiply 10x --stake 100 --days 7   # $100 into $1,000, the longest window allowed
+python kalshi_cli.py multiply 3x --stake 20 --route single   # only the one-bet route
+python kalshi_cli.py multiply 3x --stake 20 --route multi    # only the several-bet routes
+```
+
+| Route | What it is | It works when |
+|---|---|---|
+| **single** | One contract priced near 100 / multiple cents. A 5x is a contract near 20c | that one bet wins |
+| **chain** | Two to four likelier bets in a row. Each win becomes the stake for the next | every bet wins |
+| **spread** | Two to four cheaper bets placed together, sized so one winner pays the whole target | any one bet wins |
+
+Under the three sections comes a side-by-side table (what you put in, what you get, the chance under the tool's estimate and under plain market prices, the average result per attempt, how long it takes) and then the exact `buy` lines for each route, as dry runs. Row numbers run across all three sections, so `show 6` or `buy 6 --take` works on any bet listed.
+
+Options: `MULTIPLE` is `2x` (default), `3x`, `5x`, `10x` or any number from 1.1 to 50. `--stake USD` (10). `--days N` (3; anything over 7 is cut back to 7). `--route all|single|multi|chain|spread` (all). `--max-bets 2|3|4` for the chain and spread (3). `--top N` single bets to list (5). `--min-volume-24h` (300), `--max-spread` (4), `--category`, `--skip-category`, `--bias`, `--no-links`, `--format table|json|csv|markdown`, `--out FILE`.
+
+What to know before using it: the routes change the shape of the risk, not the odds. At fair prices a 5x comes in about one time in five whether it is one bet, a chain or a spread, and each route pays the taker fee, so the average result at market prices is a small loss. The chain's later bets are sized from today's prices; re-run the command before placing each one. The spread assumes its markets are unrelated.
+
 ### Decide
 
 #### `brief TICKER`
@@ -413,9 +438,9 @@ python kalshi_cli.py firehose --open
 
 That one line runs every command the tool has and binds what each printed into a single PDF that looks like the terminal: same layout, same colors, same bars. The first page is a clickable list of contents, and every command is also a bookmark in the PDF sidebar. It takes about 3 minutes, most of it the market download, and needs nothing installed.
 
-See what it produces: [docs/firehose_sample.pdf](docs/firehose_sample.pdf) (44 commands, 53 pages, from live data on October 10, 2026).
+See what it produces: [docs/firehose_sample.pdf](docs/firehose_sample.pdf) (46 commands, 61 pages, from live data on October 10, 2026).
 
-What it runs: `categories`, the top of the whole exchange, all ten presets, nine sorts, four categories, `anomalies`, `picks`, `best` three ways, `grind` twice, then one market all the way down (`show`, both `analyze` views, `event`, `ladder`, `plan`, a dry-run `buy`, `brief`, `fee`), then your watchlist, your scorecard if a log exists, your positions and orders if a key is set, and the examples. It never sends an order.
+What it runs: `categories`, the top of the whole exchange, all ten presets, nine sorts, four categories, `anomalies`, `picks`, `best` three ways, `grind` twice, `multiply` three ways, then one market all the way down (`show`, both `analyze` views, `event`, `ladder`, `plan`, a dry-run `buy`, `brief`, `fee`), then your watchlist, your scorecard if a log exists, your positions and orders if a key is set, and the examples. It never sends an order.
 
 | Option | What it does |
 |---|---|
@@ -438,7 +463,7 @@ python kalshi_cli.py serve
 
 The dashboard has no logic of its own. Each button builds a command, the server runs this same script with it, and the page shows the output with the same colors and layout as the terminal. So the two can never disagree.
 
-- **Left side:** buttons and small forms for the common commands: categories, top with filters, presets, search, best 1 / 3 / 5 / 10, picks, anomalies, grind, and the selected market's show, analyze, ladder, brief, plan and order preview.
+- **Left side:** buttons and small forms for the common commands: categories, top with filters, presets, search, best 1 / 3 / 5 / 10, picks, anomalies, grind, multiply (stake, 2x / 3x / 5x / 10x, days, single or multiple bets), and the selected market's show, analyze, ladder, brief, plan and order preview.
 - **Top:** a command box that takes anything you could type in the terminal. Up and down arrows recall earlier commands.
 - **Click any ticker** in the output to select it for the buttons on the left.
 
@@ -503,6 +528,8 @@ A key can place orders on your account. Treat the `.pem` file like a password an
 
 **Grind odds.** The chance of a chain is the product of its steps. At fair prices the chance of multiplying a stake by k is at most 1/k, whatever path is taken.
 
+**Multiply routes.** For a multiple k, a single bet needs a contract costing at most 100 / k cents after the fee. A chain of n bets needs each to return about the n-th root of k, and its chance is the product of the bets' chances. A spread buys the same number of contracts, k x stake, in each market, so the combined price per contract must stay under 100 / k cents; its chance is 1 minus the product of each bet missing, which assumes the markets are independent.
+
 **Calibration.** The Brier score, the average of (forecast - outcome) squared, for your probabilities and for the market's prices on the same trades. If yours is not lower, the profit is probably luck.
 
 ## Example commands
@@ -521,6 +548,8 @@ All of them, with explanations, are in [docs/EXAMPLES.md](docs/EXAMPLES.md), or 
 | `best 5 --by odds` | The five with the best chance of winning |
 | `picks --top 10 --bankroll 500` | A diversified basket with simulated odds |
 | `grind --start 10 --target 40` | A compounding chain with its real odds |
+| `multiply 5x --stake 20` | Single-bet and multi-bet ways to turn $20 into $100 within 3 days |
+| `multiply 10x --stake 100 --days 7 --route multi` | Only the several-bet routes, over the full 7-day limit |
 | `plan TICKER --my-prob 78 --bankroll 500` | Edge, Kelly size, checklist, verdict |
 | `buy 1` | Preview the order for row 1 (dry run) |
 | `log stats --deposits 500` | The scorecard |
@@ -536,7 +565,7 @@ All of them, with explanations, are in [docs/EXAMPLES.md](docs/EXAMPLES.md), or 
 ## What was tested
 
 - **Finding and analysis** (`categories`, `top` with every preset, filter group and format, `show`, `event`, `analyze` with each drill-down, `ladder`, `watch`): run against the live Kalshi API on October 10, 2026.
-- **Edge finders** (`anomalies`, `best`, `picks`, `grind`): run against live data. The anomaly checks were tightened after early runs flagged false positives, such as events where markets share a threshold type but are separate questions.
+- **Edge finders** (`anomalies`, `best`, `picks`, `grind`, `multiply`): run against live data. The anomaly checks were tightened after early runs flagged false positives, such as events where markets share a threshold type but are separate questions.
 - **Deciding** (`plan`, `brief`, `fee`, `watchlist`, `daily`): run against live data.
 - **Trade log** (`log init`, `add`, `settle`, `sold`, `stats`): run against live data, including settling a real resolved market. Fee math was checked against Kalshi's published example.
 - **Trading** (`buy`, `sell`, `orders`, `cancel`, `positions`): run against a stand-in server that verifies the request signature and body. The real order endpoint was confirmed to answer a bad key with a clean refusal, and dry runs were checked against live markets.

@@ -1,6 +1,6 @@
 # Example commands
 
-80 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
+88 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
 
 A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Replace `TICKER` and `ORDER_ID` with real values.
 
@@ -68,6 +68,14 @@ A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Re
 | `python kalshi_cli.py grind --start 10 --target 40` | Chain likely winners to compound $10 toward $40, with the real odds of the whole chain. |
 | `python kalshi_cli.py grind --start 10 --target 16 --stake 50 --closes-within 2` | A shorter climb, risking half the bankroll per step instead of all of it. |
 | `python kalshi_cli.py grind --start 25 --target 100 --min-price 90 --skip-category` | Only 90c-and-up favorites, with sports and crypto included. |
+| `python kalshi_cli.py multiply 2x --stake 10` | Ways to turn $10 into $20 within three days: one bet, a chain of bets, and a spread of bets, side by side with the odds of each. |
+| `python kalshi_cli.py multiply 3x --stake 20` | The same for $20 into $60. The single bet is a contract near 33c; the chain is two or three likelier bets in a row. |
+| `python kalshi_cli.py multiply 5x --stake 20 --days 5` | Aim for 5x and let the bets run up to five days out instead of the default three. |
+| `python kalshi_cli.py multiply 10x --stake 100 --days 7` | $100 into $1,000 over the longest window allowed. Seven days is the ceiling; a bigger number is cut back to 7. |
+| `python kalshi_cli.py multiply 5x --stake 10 --route single --top 10` | Only the one-bet route: the ten best contracts that pay 5x or a little more. |
+| `python kalshi_cli.py multiply 3x --stake 20 --route multi --max-bets 4` | Only the several-bet routes, allowing up to four bets in the chain or the spread. |
+| `python kalshi_cli.py multiply 2x --stake 100 --route chain --category weather economics` | A 2x built only from bets in a row, inside two categories. |
+| `python kalshi_cli.py x 5x -s 20 -d 2 --format json --out multiply.json` | Short form of the command, with the bets written to a file for a spreadsheet or script. |
 | `python kalshi_cli.py picks --top 10 --bankroll 500` | Ten picks as a weighted random draw from the best 60, one per event, with basket odds. |
 | `python kalshi_cli.py picks --top 5 --seed 7` | Fix the random draw so the same five come back. |
 | `python kalshi_cli.py picks --top 5 --bias 0` | Turn the pricing-pattern adjustment off: what the picks look like if the market is simply right. |

@@ -1,5 +1,17 @@
 # Changes since the last handoff
 
+## Latest: `multiply`
+
+- New command `multiply` (short form `x`): give a stake and a multiple, e.g. `multiply 5x --stake 20`.
+  It lays out a **single** bet, a **chain** of bets in a row and a **spread** of bets placed together,
+  then a side-by-side table with the odds of each and the ready `buy` lines (dry runs)
+- `--days N` sets how far out the bets may resolve: default 3, capped at 7
+- `--route all|single|multi|chain|spread` picks which routes to show; `--max-bets 2|3|4` limits the multi-bet routes
+- `--format json|csv|markdown` and `--out FILE` work as on the other list commands
+- Added in: the built-in help, 8 new entries in `examples` and `docs/EXAMPLES.md`, a Multiply form on the
+  dashboard, three runs in `firehose`, the README (command reference, math section, example table),
+  the master prompt and module 04, and the demo GIF
+
 Last handoff: `kalshi_scan.py`, the re-recorded MP3 and the README.
 
 ## Renamed and merged
