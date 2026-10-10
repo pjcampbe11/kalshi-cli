@@ -1,6 +1,6 @@
 # Kalshi CLI
 
-CLI for Kalshi prediction markets. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
+Kalshi CLI is one command-line tool for Kalshi prediction markets, plus the strategy guide it is built around. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
 
 ![Demo of every command](docs/demo.gif)
 
@@ -137,6 +137,7 @@ Most commands end with an **In plain words** block that says what the numbers me
 | `requirements.txt` | The one package to install, with notes on what needs it |
 | `docs/EXAMPLES.md` | Every example command with what it does |
 | `docs/demo.gif`, `docs/dashboard.png` | The demo above and a dashboard screenshot |
+| `docs/firehose_sample.pdf` | A sample of the PDF that `firehose` produces |
 | `guide/Kalshi_Strategy_Roadmap.pdf` | The strategy guide (8 pages, clickable contents) |
 | `guide/Kalshi_Strategy_Roadmap_Audio.mp3` | Audio version, 10.6 minutes |
 | `guide/audio_narration_script.txt` | The text the audio was read from |
@@ -367,6 +368,8 @@ python kalshi_cli.py firehose --open
 ```
 
 That one line runs every command the tool has and binds what each printed into a single PDF that looks like the terminal: same layout, same colors, same bars. The first page is a clickable list of contents, and every command is also a bookmark in the PDF sidebar. It takes about 3 minutes, most of it the market download, and needs nothing installed.
+
+See what it produces: [docs/firehose_sample.pdf](docs/firehose_sample.pdf) (44 commands, 53 pages, from live data on October 10, 2026).
 
 What it runs: `categories`, the top of the whole exchange, all ten presets, nine sorts, four categories, `anomalies`, `picks`, `best` three ways, `grind` twice, then one market all the way down (`show`, both `analyze` views, `event`, `ladder`, `plan`, a dry-run `buy`, `brief`, `fee`), then your watchlist, your scorecard if a log exists, your positions and orders if a key is set, and the examples. It never sends an order.
 

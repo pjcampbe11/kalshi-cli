@@ -43,6 +43,7 @@ Last handoff: `kalshi_scan.py`, the re-recorded MP3 and the README.
 
 - `docs/demo.gif`: every command, then the dashboard
 - `docs/dashboard.png`: dashboard screenshot
+- `docs/firehose_sample.pdf`: a sample of the PDF that `firehose` produces
 - `docs/EXAMPLES.md`: 77 example commands with explanations
 - `README.md`: rewritten, with a clickable table of contents, every command and option, and the math
 - `prompts/00_MASTER_PROMPT.txt`: version 2.0, describes the all-in-one tool
