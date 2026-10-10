@@ -1,8 +1,8 @@
- _  __    _    _     ____  _   _ ___   _____ ___   ___  _     _  _____ _____
-| |/ /   / \  | |   / ___|| | | |_ _| |_   _/ _ \ / _ \| |   | |/ /_ _|_   _|
-| ' /   / _ \ | |   \___ \| |_| || |    | || | | | | | | |   | ' / | |  | |
-| . \  / ___ \| |___ ___) |  _  || |    | || |_| | |_| | |___| . \ | |  | |
-|_|\_\/_/   \_\_____|____/|_| |_|___|   |_| \___/ \___/|_____|_|\_\___| |_|
+ _  __    _    _     ____  _   _ ___    ____ _     ___
+| |/ /   / \  | |   / ___|| | | |_ _|  / ___| |   |_ _|
+| ' /   / _ \ | |   \___ \| |_| || |  | |   | |    | |
+| . \  / ___ \| |___ ___) |  _  || |  | |___| |___ | |
+|_|\_\/_/   \_\_____|____/|_| |_|___|  \____|_____|___|
 
 
                      M A S T E R   B U I L D   P R O M P T
@@ -25,7 +25,7 @@
 |    03_audio_mp3.txt              Turn the guide into a short audiobook     |
 |    04_log_and_tool.txt           Build the trade log and the tool          |
 |    05_templates_and_docs.txt     Templates, README and .gitignore          |
-|    06_test.txt                   Prove the toolkit works                   |
+|    06_test.txt                   Prove the tool works                      |
 |    07_deliver_and_github.txt     Desktop folder, zip and GitHub commands   |
 |                                                                            |
 |  Run the master for a full rebuild. Run one module to redo one piece.      |

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-kalshi_cli.py - one tool for Kalshi: find markets, find an edge, decide, trade, keep score.
+Kalshi CLI (kalshi_cli.py) - one tool for Kalshi: find markets, find an edge, decide, trade, keep score.
 
 Run it in a terminal, or run `serve` for the same thing as a dashboard in your
 browser. Both show identical output, because the dashboard runs these commands.

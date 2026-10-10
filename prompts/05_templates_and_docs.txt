@@ -4,7 +4,7 @@
  \__/|___/ |___/ \___/ \___|___/
 
 
-  KALSHI TOOLKIT  |  MODULE 5 OF 7
+  KALSHI CLI  |  MODULE 5 OF 7
   Templates, README and .gitignore.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 

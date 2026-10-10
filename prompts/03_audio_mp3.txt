@@ -4,7 +4,7 @@
  \__/___/ /_/ \_\___/|___/___\___/
 
 
-  KALSHI TOOLKIT  |  MODULE 3 OF 7
+  KALSHI CLI  |  MODULE 3 OF 7
   Turn the guide into a short audiobook.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 

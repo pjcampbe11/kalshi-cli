@@ -4,8 +4,8 @@
  \__/\___/   |_| |___|___/ |_|
 
 
-  KALSHI TOOLKIT  |  MODULE 6 OF 7
-  Prove the toolkit works.
+  KALSHI CLI  |  MODULE 6 OF 7
+  Prove the tool works.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 
   research > guide > audio > tool > docs > [TEST] > deliver

@@ -4,6 +4,8 @@ Last handoff: `kalshi_scan.py`, the re-recorded MP3 and the README.
 
 ## Renamed and merged
 
+- The project is now called **Kalshi CLI** (was Kalshi toolkit). The file `kalshi_cli.py`, the folder and the repo name are unchanged
+
 - `kalshi_scan.py` is now `kalshi_cli.py`
 - `kalshi_log.py` is merged into it and removed. Its commands live under `log`:
   `log init`, `log add`, `log settle`, `log sold` (was `sell`), `log stats`, `log fills`

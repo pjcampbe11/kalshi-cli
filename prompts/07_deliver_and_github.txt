@@ -4,7 +4,7 @@
  \__//_/   |___/|___|____|___| \_/ |___|_|_\
 
 
-  KALSHI TOOLKIT  |  MODULE 7 OF 7
+  KALSHI CLI  |  MODULE 7 OF 7
   Desktop folder, zip and GitHub commands.
   Runs on its own. For the whole build in one go, use 00_MASTER_PROMPT.txt.
 
