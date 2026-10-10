@@ -1,6 +1,55 @@
 # Kalshi CLI
 
+```text
+ _  __    _    _     ____  _   _ ___    ____ _     ___
+| |/ /   / \  | |   / ___|| | | |_ _|  / ___| |   |_ _|
+| ' /   / _ \ | |   \___ \| |_| || |  | |   | |    | |
+| . \  / ___ \| |___ ___) |  _  || |  | |___| |___ | |
+|_|\_\/_/   \_\_____|____/|_| |_|___|  \____|_____|___|
+
+   find markets  >  find an edge  >  decide  >  trade  >  keep score
+```
+
 Kalshi CLI is one command-line tool for Kalshi prediction markets, plus the strategy guide it is built around. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
+
+Kalshi is a regulated exchange where you trade yes-or-no contracts on real events: Fed decisions, inflation, weather, elections, sports. Each contract costs 1 to 99 cents and pays $1 if you are right. This project started as a question, "what does it actually take to make money there?", and turned into a guide that answers it and a tool that does the math.
+
+It does not predict outcomes and it is not financial advice. Research on Kalshi found the average trader loses money. The tool shows you the numbers, including the unflattering ones, so you can see what you are getting into.
+
+## New here? Start with these
+
+No coding needed. Two PDFs you can open right now:
+
+- **[The strategy guide](guide/Kalshi_Strategy_Roadmap.pdf)** (8 pages). How Kalshi works, what it realistically takes to reach $1,000 to $25,000 in profit, what to trade, what to avoid, and how to size your bets. There is also a [10-minute audio version](guide/Kalshi_Strategy_Roadmap_Audio.mp3).
+- **[A sample "firehose" report](docs/firehose_sample.pdf)** (53 pages). This is what the tool produces when one command runs everything it can do: the busiest markets, the biggest movers, prices that don't add up, top picks, and one market taken all the way down to its order book. It is a snapshot of live data from October 10, 2026.
+
+GitHub previews both in the browser. Click the download button on the PDF's page to get the clickable table of contents and full-quality color.
+
+The `templates/` folder has plain checklists to go with the guide: a pre-trade checklist, a risk rules card, a phased roadmap, and review sheets.
+
+## For the technical crowd
+
+One Python file, standard library only. Trading is the one part that needs an extra package.
+
+```powershell
+git clone https://github.com/pjcampbe11/kalshi-toolkit.git
+cd kalshi-toolkit
+python -m pip install -r requirements.txt      # only needed for trading
+python kalshi_cli.py examples                  # 80 example commands, explained
+python kalshi_cli.py best 3                    # the three top-scoring markets
+python kalshi_cli.py firehose --open           # everything, as one color PDF
+python kalshi_cli.py serve                     # dashboard at http://127.0.0.1:8765
+```
+
+- **Needs:** Python 3.9 or newer. Works on Windows, macOS and Linux.
+- **No API key** for finding, analyzing, planning or logging. A key is only for placing orders and reading your account.
+- **First run** downloads about 140,000 open markets and takes 1 to 2 minutes. After that the list is cached for 30 minutes.
+- **Orders are dry runs** until you add `--live` and type a confirmation word. The trading commands were tested against a stand-in server, not a funded account, so start with `--demo` or one small order.
+- **Prefer a virtual environment?** The steps are in [Install](#install).
+
+What is under the hood: a screener over every open market, anomaly checks (outcome sets whose bids add past $1, threshold ladders priced out of order, z-score moves, volume surges), implied probability distributions, a Kelly-based trade planner, basket and compounding simulations, a trade log scored for calibration, a localhost dashboard, and a dependency-free PDF writer. Every command, option and formula is documented below.
+
+## See it run
 
 ![Demo of every command](docs/demo.gif)
 
@@ -8,6 +57,9 @@ The demo runs every command in the terminal and then the dashboard. The trading 
 
 ## Contents
 
+- [New here? Start with these](#new-here-start-with-these)
+- [For the technical crowd](#for-the-technical-crowd)
+- [See it run](#see-it-run)
 - [What it does and what it cannot do](#what-it-does-and-what-it-cannot-do)
 - [Install](#install)
 - [Quick start](#quick-start)
