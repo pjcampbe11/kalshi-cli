@@ -29,6 +29,8 @@ cd kalshi-toolkit
 python -m pip install -r requirements.txt      # only needed for trading
 python kalshi_cli.py examples                  # about 90 example commands, explained
 python kalshi_cli.py best 3                    # the three top-scoring markets
+python kalshi_cli.py multiply 5x --stake 20    # ways to turn $20 into $100 within 3 days
+python kalshi_cli.py multiply --sweep          # 16 multiply variations into one text file
 python kalshi_cli.py firehose --open           # everything, as one color PDF
 python kalshi_cli.py serve                     # dashboard at http://127.0.0.1:8765
 ```
@@ -39,7 +41,7 @@ python kalshi_cli.py serve                     # dashboard at http://127.0.0.1:8
 - **Orders are dry runs** until you add `--live` and type a confirmation word. The trading commands were tested against a stand-in server, not a funded account, so start with `--demo` or one small order.
 - **Prefer a virtual environment?** The steps are in [Install](#install).
 
-What is under the hood: a screener over every open market, anomaly checks (outcome sets whose bids add past $1, threshold ladders priced out of order, z-score moves, volume surges), implied probability distributions, a Kelly-based trade planner, basket and compounding simulations, a trade log scored for calibration, a localhost dashboard, and a dependency-free PDF writer. Every command, option and formula is documented below.
+What is under the hood: a screener over every open market, anomaly checks (outcome sets whose bids add past $1, threshold ladders priced out of order, z-score moves, volume surges), implied probability distributions, a Kelly-based trade planner, basket and compounding simulations, a stake multiplier that compares single-bet and multi-bet routes to 2x / 3x / 5x / 10x, a trade log scored for calibration, a localhost dashboard, and a dependency-free PDF writer. Every command, option and formula is documented below.
 
 ## See it run
 
@@ -83,6 +85,7 @@ The demo runs every command in the terminal and then the dashboard. The trading 
 - Show one market in depth: prices, fees, break-even, rules, order book, price history, statistics.
 - Find prices that break arithmetic, and prices that break their own pattern.
 - Rank markets, build diversified baskets, and simulate what a basket or a compounding chain could do.
+- Take a stake and a target multiple (2x, 3x, 5x, 10x) and lay out a single bet, a chain of bets and a spread of bets that could reach it within a week, with the odds of each.
 - Turn your own probability into an edge, a Kelly-based size, a checklist verdict and a ready order.
 - Place limit orders, behind several safeguards, if you give it an API key.
 - Keep a trade log and score you against the guide's rules.
@@ -472,14 +475,18 @@ Safety: it listens on `127.0.0.1` only, every request must carry a secret token 
 
 ## Output formats and color
 
-- `top`, `picks`, `best` and `anomalies` take `--format table`, `json`, `csv` or `markdown`, and `--out FILE`.
+- `top`, `picks`, `best`, `anomalies` and `multiply` take `--format table`, `json`, `csv` or `markdown`, and `--out FILE`.
 - `analyze` takes `--format json`. `log stats` takes `--json`.
+- `multiply --sweep [FILE]` writes 16 variations, each command followed by its output, to a plain-text file (`multiply_results.txt` by default).
+- `firehose` writes everything to one color PDF.
 - Output is colored in a terminal and plain when piped to a file. `--color never` or `NO_COLOR=1` turns color off; `--color always` forces it on.
 
 ```powershell
 python kalshi_cli.py top -c weather -n 20 --format markdown --out weather.md
 python kalshi_cli.py picks -n 10 --format csv --out picks.csv
 python kalshi_cli.py analyze TICKER --format json
+python kalshi_cli.py multiply 5x --stake 20 --format csv --out multiply.csv
+python kalshi_cli.py multiply --sweep multiply_results.txt
 ```
 
 ## API key and settings
@@ -551,6 +558,7 @@ All of them, with explanations, are in [docs/EXAMPLES.md](docs/EXAMPLES.md), or 
 | `grind --start 10 --target 40` | A compounding chain with its real odds |
 | `multiply 5x --stake 20` | Single-bet and multi-bet ways to turn $20 into $100 within 3 days |
 | `multiply 10x --stake 100 --days 7 --route multi` | Only the several-bet routes, over the full 7-day limit |
+| `multiply --sweep` | 16 multiply variations, commands and output, into `multiply_results.txt` |
 | `plan TICKER --my-prob 78 --bankroll 500` | Edge, Kelly size, checklist, verdict |
 | `buy 1` | Preview the order for row 1 (dry run) |
 | `log stats --deposits 500` | The scorecard |
@@ -567,6 +575,7 @@ All of them, with explanations, are in [docs/EXAMPLES.md](docs/EXAMPLES.md), or 
 
 - **Finding and analysis** (`categories`, `top` with every preset, filter group and format, `show`, `event`, `analyze` with each drill-down, `ladder`, `watch`): run against the live Kalshi API on October 10, 2026.
 - **Edge finders** (`anomalies`, `best`, `picks`, `grind`, `multiply`): run against live data. The anomaly checks were tightened after early runs flagged false positives, such as events where markets share a threshold type but are separate questions.
+- **Multiply:** every route, stake, multiple and window option run against live data, including the 7-day cap, the JSON and CSV output, `buy` from a row number as a dry run, and `--sweep` writing all 16 runs to a text file. Run on Linux and on the Windows machine's Linux shell; the orders it prints were only ever dry runs.
 - **Deciding** (`plan`, `brief`, `fee`, `watchlist`, `daily`): run against live data.
 - **Trade log** (`log init`, `add`, `settle`, `sold`, `stats`): run against live data, including settling a real resolved market. Fee math was checked against Kalshi's published example.
 - **Trading** (`buy`, `sell`, `orders`, `cancel`, `positions`): run against a stand-in server that verifies the request signature and body. The real order endpoint was confirmed to answer a bad key with a clean refusal, and dry runs were checked against live markets.

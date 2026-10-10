@@ -27,7 +27,7 @@
 # ----------------------------------------------------------------------------
 # Everything except trading runs on Python alone, with nothing from this file:
 #   categories, top, show, event, analyze, ladder, watch, open, anomalies, best,
-#   picks, grind, brief, plan, fee, watchlist, daily, examples, serve,
+#   picks, grind, multiply, brief, plan, fee, watchlist, daily, examples, serve,
 #   and log init / add / settle / sold / stats
 #
 # These need the package below, because Kalshi requires every account request

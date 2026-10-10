@@ -11,6 +11,7 @@ fills_*.csv
 dashboard.html
 kalshi_firehose_*.pdf
 multiply_results.txt
+my_runs.txt
 
 # Virtual environment (recreate it with the steps in the README)
 .venv/

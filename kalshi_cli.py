@@ -24,7 +24,8 @@ FIND AN EDGE
                     with the honest odds of the whole chain
   multiply          turn $10 / $20 / $100 into 2x / 3x / 5x / 10x inside a week:
                     a single bet, a chain of bets, or a spread of bets, with
-                    the honest odds of each and the orders to place
+                    the honest odds of each and the orders to place.
+                    --sweep runs 16 variations into one text file
   picks             a diversified random draw from the best, with basket odds
 
 DECIDE

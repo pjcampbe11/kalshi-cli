@@ -162,7 +162,9 @@ Build everything the guide refers to, so nothing in it is left as homework.
          5x, 10x). Show a single bet, a chain of bets in a row, and a
          spread of bets placed together, side by side, each with its real
          odds and the orders to place. Everything must resolve within a
-         number of days I choose: default 3, never more than 7.
+         number of days I choose: default 3, never more than 7. Add a
+         --sweep option that runs a set of variations in one go and
+         writes each command with its output to a text file.
 
      DECIDE
        - brief: write a research prompt I can give an AI assistant
