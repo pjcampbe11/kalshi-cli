@@ -1,6 +1,6 @@
 # Kalshi CLI
 
-Kalshi CLI for Kalshi prediction markets. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
+CLI for Kalshi prediction markets. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
 
 ![Demo of every command](docs/demo.gif)
 
