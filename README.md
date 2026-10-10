@@ -2,7 +2,7 @@
 
 ![Kalshi CLI: find markets, find an edge, decide, trade, keep score](docs/banner.svg)
 
-Kalshi CLI is one command-line tool for Kalshi prediction markets. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
+Kalshi CLI is one command-line tool for Kalshi prediction markets, plus the strategy guide it is built around. `kalshi_cli.py` finds markets, looks for an edge, helps you decide, optionally places orders, and keeps score. Run it in a terminal, or run `serve` to get the same thing as a dashboard in your browser.
 
 Kalshi is a regulated exchange where you trade yes-or-no contracts on real events: Fed decisions, inflation, weather, elections, sports. Each contract costs 1 to 99 cents and pays $1 if you are right. This project started as a question, "what does it actually take to make money there?", and turned into a guide that answers it and a tool that does the math.
 
@@ -350,6 +350,7 @@ python kalshi_cli.py multiply 5x --stake 20 --days 5     # $20 into $100, up to 
 python kalshi_cli.py multiply 10x --stake 100 --days 7   # $100 into $1,000, the longest window allowed
 python kalshi_cli.py multiply 3x --stake 20 --route single   # only the one-bet route
 python kalshi_cli.py multiply 3x --stake 20 --route multi    # only the several-bet routes
+python kalshi_cli.py multiply --sweep                        # 16 variations, commands + output, into multiply_results.txt
 ```
 
 | Route | What it is | It works when |
@@ -360,7 +361,7 @@ python kalshi_cli.py multiply 3x --stake 20 --route multi    # only the several-
 
 Under the three sections comes a side-by-side table (what you put in, what you get, the chance under the tool's estimate and under plain market prices, the average result per attempt, how long it takes) and then the exact `buy` lines for each route, as dry runs. Row numbers run across all three sections, so `show 6` or `buy 6 --take` works on any bet listed.
 
-Options: `MULTIPLE` is `2x` (default), `3x`, `5x`, `10x` or any number from 1.1 to 50. `--stake USD` (10). `--days N` (3; anything over 7 is cut back to 7). `--route all|single|multi|chain|spread` (all). `--max-bets 2|3|4` for the chain and spread (3). `--top N` single bets to list (5). `--min-volume-24h` (300), `--max-spread` (4), `--category`, `--skip-category`, `--bias`, `--no-links`, `--format table|json|csv|markdown`, `--out FILE`.
+Options: `MULTIPLE` is `2x` (default), `3x`, `5x`, `10x` or any number from 1.1 to 50. `--stake USD` (10). `--days N` (3; anything over 7 is cut back to 7). `--route all|single|multi|chain|spread` (all). `--max-bets 2|3|4` for the chain and spread (3). `--top N` single bets to list (5). `--min-volume-24h` (300), `--max-spread` (4), `--category`, `--skip-category`, `--bias`, `--no-links`, `--format table|json|csv|markdown`, `--out FILE`. `--sweep [FILE]` runs 16 preset variations (every route, several stakes, multiples, windows and categories) and writes each command followed by its output to one plain-text file, `multiply_results.txt` unless you name another.
 
 What to know before using it: the routes change the shape of the risk, not the odds. At fair prices a 5x comes in about one time in five whether it is one bet, a chain or a spread, and each route pays the taker fee, so the average result at market prices is a small loss. The chain's later bets are sized from today's prices; re-run the command before placing each one. The spread assumes its markets are unrelated.
 

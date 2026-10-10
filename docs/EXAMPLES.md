@@ -1,6 +1,6 @@
 # Example commands
 
-88 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
+90 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
 
 A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Replace `TICKER` and `ORDER_ID` with real values.
 
@@ -75,6 +75,8 @@ A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Re
 | `python kalshi_cli.py multiply 5x --stake 10 --route single --top 10` | Only the one-bet route: the ten best contracts that pay 5x or a little more. |
 | `python kalshi_cli.py multiply 3x --stake 20 --route multi --max-bets 4` | Only the several-bet routes, allowing up to four bets in the chain or the spread. |
 | `python kalshi_cli.py multiply 2x --stake 100 --route chain --category weather economics` | A 2x built only from bets in a row, inside two categories. |
+| `python kalshi_cli.py multiply --sweep` | Run 16 multiply variations in one go and write each command with its output to multiply_results.txt. |
+| `python kalshi_cli.py multiply --sweep my_runs.txt` | The same sweep, written to a file name you choose. |
 | `python kalshi_cli.py x 5x -s 20 -d 2 --format json --out multiply.json` | Short form of the command, with the bets written to a file for a spreadsheet or script. |
 | `python kalshi_cli.py picks --top 10 --bankroll 500` | Ten picks as a weighted random draw from the best 60, one per event, with basket odds. |
 | `python kalshi_cli.py picks --top 5 --seed 7` | Fix the random draw so the same five come back. |

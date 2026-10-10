@@ -2891,6 +2891,8 @@ def route_summary(name, legs, stake, multiple):
 
 def cmd_multiply(a):
     """Lay out single-bet and multi-bet ways to turn a stake into a chosen multiple inside a week."""
+    if getattr(a, "sweep", None):                             # --sweep: run the whole set of variations into a text file
+        return multiply_sweep(a)
     days = a.days
     note = ""
     if days > MULTIPLY_MAX_DAYS:                              # the window is never allowed past a week
@@ -3628,6 +3630,8 @@ EXAMPLES = [
     ("Find an edge", "multiply 5x --stake 10 --route single --top 10", "Only the one-bet route: the ten best contracts that pay 5x or a little more."),
     ("Find an edge", "multiply 3x --stake 20 --route multi --max-bets 4", "Only the several-bet routes, allowing up to four bets in the chain or the spread."),
     ("Find an edge", "multiply 2x --stake 100 --route chain --category weather economics", "A 2x built only from bets in a row, inside two categories."),
+    ("Find an edge", "multiply --sweep", "Run 16 multiply variations in one go and write each command with its output to multiply_results.txt."),
+    ("Find an edge", "multiply --sweep my_runs.txt", "The same sweep, written to a file name you choose."),
     ("Find an edge", "x 5x -s 20 -d 2 --format json --out multiply.json", "Short form of the command, with the bets written to a file for a spreadsheet or script."),
     ("Find an edge", "picks --top 10 --bankroll 500", "Ten picks as a weighted random draw from the best 60, one per event, with basket odds."),
     ("Find an edge", "picks --top 5 --seed 7", "Fix the random draw so the same five come back."),
@@ -4224,6 +4228,46 @@ def run_capture(argv, columns, timeout=600):
     return text.rstrip("\n"), done.returncode
 
 
+# The variations `multiply --sweep` runs, in order. Edit this list to change the sweep.
+MULTIPLY_SWEEP = [
+    "multiply 2x --stake 10",
+    "multiply 5x --stake 20 --days 5",
+    "multiply 10x --stake 100 --days 7",
+    "multiply 3x --stake 20 --route single",
+    "multiply 3x --stake 20 --route multi",
+    "multiply 2x --stake 20 --days 1",
+    "multiply 3x --stake 100 --days 7 --route chain --max-bets 4",
+    "multiply 5x --stake 10 --route spread --max-bets 4",
+    "multiply 5x --stake 10 --route single --top 10",
+    "multiply 10x --stake 20 --days 7 --route single --top 10",
+    "multiply 2x --stake 100 --category weather economics",
+    "multiply 3x --stake 20 --category politics --days 7",
+    "multiply 5x --stake 20 --days 7 --skip-category",
+    "multiply 2x --stake 10 --bias 0",
+    "multiply 3x --stake 10 --min-volume-24h 2000 --max-spread 2",
+    "x 2x -s 10 -d 2 --no-links",
+]
+
+
+def multiply_sweep(a):
+    """Run every multiply variation above and write each command plus what it printed to one text file."""
+    path = os.path.expanduser(a.sweep)
+    line = "=" * 110
+    parts = [f"Kalshi CLI multiply sweep - {dt.datetime.now().strftime('%Y-%m-%d %H:%M')} - {len(MULTIPLY_SWEEP)} commands",
+             "Dry runs only. Nothing here was sent to the exchange."]
+    print(banner("KALSHI", paint("multiply sweep", "bold") + paint(f"  {len(MULTIPLY_SWEEP)} variations into one text file", "gray")) + "\n")
+    load_markets(a.cache_minutes, a.refresh)                  # download once here so every run below reuses the saved list
+    for i, command in enumerate(MULTIPLY_SWEEP, 1):
+        text, code = run_capture(shlex.split(command), 130)
+        text = ANSI_RE.sub("", text)                          # a text file wants plain text, so the color codes come out
+        parts.append(f"\n{line}\nCOMMAND {i} of {len(MULTIPLY_SWEEP)}: python kalshi_cli.py {command}\n{line}\n{text}")
+        mark = paint("ok", "green") if code == 0 else paint(f"exit {code}", "red", "bold")
+        print(f"  {i:>2} {paint('python kalshi_cli.py ' + command, 'bold')}  {mark}")
+    with open(path, "w", encoding="utf-8-sig") as fh:          # the marker at the start makes Notepad read it as UTF-8
+        fh.write("\n".join(parts) + "\n")
+    print("\n" + paint("Wrote ", "green", "bold") + f"{path}  ({len(MULTIPLY_SWEEP)} commands, each followed by its output)")
+
+
 def cmd_firehose(a):
     """Run every command and write the lot to one color PDF."""
     stamp = dt.datetime.now().strftime("%Y%m%d_%H%M")
@@ -4608,6 +4652,9 @@ def build_parser():
     e.add_argument("--no-links", action="store_true", help="hide the ticker/link line")
     e.add_argument("--format", "-f", choices=["table", "json", "csv", "markdown"], default="table")
     e.add_argument("--out", "-o", metavar="FILE", help="with --format json/csv/markdown: write to this file")
+    e.add_argument("--sweep", nargs="?", const="multiply_results.txt", metavar="FILE",
+                   help="run 16 multiply variations and write each command with its output to a text file "
+                        "(default multiply_results.txt). The other options are ignored")
     e.set_defaults(func=cmd_multiply)
 
     e = sub.add_parser("fee", help="fee calculator for one order")
