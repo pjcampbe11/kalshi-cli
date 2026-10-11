@@ -26,7 +26,8 @@
 # WHAT NEEDS WHAT
 # ----------------------------------------------------------------------------
 # Everything except trading runs on Python alone, with nothing from this file:
-#   categories, top, show, event, analyze, ladder, watch, open, anomalies, best,
+#   categories, top, search, tags, sources, status, show, event, analyze, ladder,
+#   watch, open, flow, pressure, rewards, anomalies, best, chain, selftest,
 #   picks, grind, multiply, brief, plan, fee, watchlist, daily, examples, serve,
 #   and log init / add / settle / sold / stats
 #

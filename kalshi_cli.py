@@ -13,11 +13,19 @@ FIND
   analyze           price history, statistics and a text chart; --deep drills
                     into the order book and recent trades
   ladder            an event's prices as a probability distribution
+  search            EVERY open market matching your keywords, no top-N cut;
+                    --any, --phrase, --not, --regex, --tag, --group, --count
+  tags / sources    Kalshi's own tags; where a market's answer comes from,
+                    its contract terms and its fee type
   watch / open      follow prices on a timer; open the kalshi.com page
 
 FIND AN EDGE
   anomalies         prices that break arithmetic (outcome sets, threshold
                     ladders) or break their own pattern (moves, volume, quotes)
+  flow              the trade tape: which side takers are buying, the biggest
+                    trades, for one market, a search, or the whole exchange
+  pressure          order books that lean hard to one side
+  rewards           markets where Kalshi pays for resting orders or volume
   best [N]          the top-scoring market, or the top 3 / 5 / 10; --by odds
                     ranks by the best chance of winning instead
   grind             compound a small stake through a chain of likely winners,
@@ -46,8 +54,11 @@ KEEP SCORE
                     the trade log and the scorecard against the guide's rules
 
 HELP
+  chain             several commands in a row: chain "best 3" "analyze 1"
+  status / banner   is the exchange open; the banner and where to start
+  selftest          check that everything works on this computer
   firehose          run EVERY command and bind the output into one color PDF
-  examples          about 90 example commands with what each does
+  examples          about 120 example commands with what each does
   serve             the dashboard, at http://127.0.0.1:8765
 
 FROM FINDING TO BUYING
@@ -87,8 +98,12 @@ API KEY AS ENVIRONMENT VARIABLES (Windows PowerShell)
   Open a new window afterwards. Other settings: KALSHI_LOG (trade log path),
   KALSHI_MAX_ORDER_USD (order cap), KALSHI_HOME (where the watchlist lives).
 
-COLOR
-  On when printing to a terminal. --color never, or NO_COLOR=1, turns it off.
+COLOR AND LINKS
+  On when printing to a terminal. --color never, or NO_COLOR=1, turns color
+  off. Market addresses and tickers are clickable in terminals that support
+  it (Windows Terminal, VS Code, most others); --links never turns that off.
+  The dashboard opens in Chrome by default: serve --browser edge | firefox |
+  brave | default | PATH.
 """
 import argparse
 import base64
@@ -416,7 +431,10 @@ def api_get(endpoint, params=None, need_auth=False):
     """
     global _last_call
     url = BASE + endpoint
-    query = urllib.parse.urlencode({k: v for k, v in (params or {}).items() if v not in (None, "")})
+    if isinstance(params, list):                      # a list of (name, value) pairs: the same name may repeat
+        query = urllib.parse.urlencode(params)
+    else:
+        query = urllib.parse.urlencode({k: v for k, v in (params or {}).items() if v not in (None, "")})
     auth = load_auth(required=need_auth)
     for attempt in range(6):
         wait = 0.25 - (time.time() - _last_call)
@@ -581,7 +599,7 @@ def apply_filters(rows, a):
             continue
         if m["category"].lower() in skipped:
             continue
-        haystack = f"{m['title']} {m['ticker']} {m['category']}".lower()
+        haystack = f"{m['title']} {m.get('event_title', '')} {m['ticker']} {m['category']}".lower()
         if words:
             hits = [w in haystack for w in words]
             if not (any(hits) if a.any_word else all(hits)):
@@ -692,7 +710,7 @@ def print_table(rows, show_links=True):
         title = paint(title, "bold") if cut <= 0 else paint(title[:cut], "bold") + paint(title[cut:], "cyan")
         print(f"{cell(i, 3, 'gray', align='>')} {buy} {book} {chg} {spread} {pays} {vol} {vol_bar} {interest} {ends}  {title}")
         if show_links:
-            print(f"    {paint(m['ticker'], 'cyan')}  {category_tag(m['category'])}  {paint(m['url'], 'blue', 'ul')}")
+            print(f"    {link(m['url'], paint(m['ticker'], 'cyan'))}  {category_tag(m['category'])}  {link(m['url'])}")
 
 
 def write_csv(rows, path):
@@ -794,7 +812,8 @@ def cmd_top(a):
     if a.one_per_event:
         found = one_per_event(found)
     total = len(found)
-    found = found[: a.top]
+    if a.top:                                            # --top 0 means no cut: list everything that matches
+        found = found[: a.top]
     save_last(found)
 
     # 3. Output. --format json/csv/markdown replaces the table; --out sends it to a file.
@@ -842,7 +861,7 @@ def cmd_show(a):
     print(f"{paint(m['ticker'], 'cyan')}  {category_tag(m['category'])}  "
           f"{paint('status ' + str(market.get('status')), 'gray')}  "
           f"ends in {paint(time_left(m['hours_left']), 'bold')} {paint('(' + m['close_time'] + ')', 'gray')}")
-    print(paint(m["url"], "blue", "ul"))
+    print(link(m["url"]))
 
     # A single bar showing where the market puts the odds: green = YES, magenta = NO.
     mid = None
@@ -1227,7 +1246,7 @@ def cmd_analyze(a):
     print("\n" + paint(m["title"], "bold", "white"))
     print(f"{paint(ticker, 'cyan')}  {category_tag(m['category'])}  ends in {paint(time_left(m['hours_left']), 'bold')}"
           f"   YES bid {price_text(m['yes_bid'])}c / ask {price_text(m['yes_ask'])}c")
-    print(paint(m["url"], "blue", "ul"))
+    print(link(m["url"]))
     if len(closes) < 2:
         print("\n" + paint("Not enough price history to analyze.", "yellow", "bold") + " The market may be new or untraded.")
         return
@@ -1554,7 +1573,7 @@ def cmd_picks(a):
         print(f"{cell(i, 3, 'gray', align='>')} {order} {how} {m['mid']:>4.0f}% {m['est_prob']:>5.1f}% {edge} "
               f"{cost_text:>8} {ends} {m['score']:>5.1f} {bar(m['score'] / top_score, 8, 'cyan')}  {title}")
         if not a.no_links:
-            print(f"    {paint(m['ticker'], 'cyan')}  {category_tag(m['category'])}  {paint(m['url'], 'blue', 'ul')}")
+            print(f"    {link(m['url'], paint(m['ticker'], 'cyan'))}  {category_tag(m['category'])}  {link(m['url'])}")
 
     # 4. The basket as a whole, under two assumptions.
     total = sum(m["cost"] for m in chosen)
@@ -2177,7 +2196,7 @@ def cmd_anomalies(a):
             print(f"  {cell(n, 3, 'gray', align='>')} {cell(edge if f['edge'] else '', 7)} {paint(title, 'bold')}")
             print(f"      {f['what']}")
             print(f"      {paint(f['ticker'] if f['kind'] in ('move', 'surge', 'dislocation') else f['event'], 'cyan')}  "
-                  f"{category_tag(f['category'])}  {paint(f['url'], 'blue', 'ul')}")
+                  f"{category_tag(f['category'])}  {link(f['url'])}")
 
     words = []
     locked = [f for _, _, found in sections for f in found if f["kind"] in ("overround", "ladder")]
@@ -2677,7 +2696,7 @@ def cmd_grind(a):
         print(f"{cell(i, 4, 'gray', align='>')} {order} {s['est_prob']:>5.1f}% {s['gain']:>+6.1%} {grow}{pad} "
               f"{cell(f'{chain:.0%}', 10, tone, 'bold', align='>')} {time_left(s['hours_left']):>5}  {title}")
         if not a.no_links:
-            print(f"     {paint(s['ticker'], 'cyan')}  {category_tag(s['category'])}  {paint(s['url'], 'blue', 'ul')}")
+            print(f"     {link(s['url'], paint(s['ticker'], 'cyan'))}  {category_tag(s['category'])}  {link(s['url'])}")
     reached = steps[-1]["after"] >= a.target
     print("\n  " + (paint(f"The chain reaches ${steps[-1]['after']:,.2f} in {len(steps)} wins.", "bold") if reached else
                     paint(f"The chain runs out at ${steps[-1]['after']:,.2f} after {len(steps)} wins, short of ${a.target:g}.", "yellow", "bold"))
@@ -2958,7 +2977,7 @@ def cmd_multiply(a):
               f"{paint(('$' + format(m['pays'], ',.2f')).rjust(8), 'green', 'bold')} {m['est_prob']:>5.1f}% {m['mid']:>4.0f}% "
               f"{time_left(m['hours_left']):>5}  {title}{extra}")
         if not a.no_links:
-            print(f"    {paint(m['ticker'], 'cyan')}  {category_tag(m['category'])}  {paint(m['url'], 'blue', 'ul')}")
+            print(f"    {link(m['url'], paint(m['ticker'], 'cyan'))}  {category_tag(m['category'])}  {link(m['url'])}")
 
     summaries = []
 
@@ -3582,6 +3601,13 @@ EXAMPLES = [
     ("Start here", "serve", "Open the dashboard at http://127.0.0.1:8765. Same commands, same output, with buttons."),
     ("Start here", "firehose --open", "Run EVERY command and bind the output into one color PDF with clickable contents, then open it."),
     ("Start here", "--refresh categories", "Put --refresh before any command to re-download the market list instead of using the saved copy."),
+    ('Start here', 'chain "search fed rate" "analyze 1" "flow 1"', 'Three commands in a row. Row numbers carry over, so 1 means the first search result.'),
+    ('Start here', 'chain "best 3 ; plan 1 --my-prob 70 ; buy 1" --keep-going', 'One string with ; between steps. --keep-going carries on if a step fails.'),
+    ('Start here', 'serve --browser edge', 'Open the dashboard in Edge instead of Chrome. Also: firefox, brave, default, or a full path.'),
+    ('Start here', '--links never top --category economics', 'Turn off clickable links for one run, for a terminal that shows stray characters.'),
+    ('Start here', 'selftest', 'Check the arithmetic and run about 30 real commands; each line says pass or FAIL. No order is sent.'),
+    ('Start here', 'selftest --quick', 'A shorter check: the arithmetic and the first ten commands.'),
+    ('Start here', 'banner', 'The banner and a short list of where to start. Running the tool with nothing after it shows the same.'),
 
     ("Find markets", "top --category economics --top 10", "The 10 most traded economics markets in the last 24 hours."),
     ("Find markets", "top --all --top 100", "The 100 busiest markets on the whole exchange."),
@@ -3598,6 +3624,20 @@ EXAMPLES = [
     ("Find markets", "top --category tech ai --sort interest --one-per-event", "Tech and AI ranked by open interest, one market per event."),
     ("Find markets", "top --series KXFED --sort closing", "Every market in one series, soonest first."),
     ("Find markets", "top --category economics --top 3 --open 3", "Show the top 3 and open each one's kalshi.com page in your browser."),
+    ('Find markets', 'search bears packers', 'Every open market matching both words, in every category including sports, with no top-N cut. Also shows how the matches group into events.'),
+    ('Find markets', 'search bears packers --group', 'The same search as a list of events with a market count each, instead of every market.'),
+    ('Find markets', 'search fed rate --any --limit 20', 'Markets matching EITHER word, cut to the first 20.'),
+    ('Find markets', 'search rate cut --phrase --not september', "The exact phrase 'rate cut', leaving out anything that mentions September."),
+    ('Find markets', 'search --regex "above \\$?9[0-9]" --category commodities', 'A pattern search: commodity markets with a threshold in the 90s.'),
+    ('Find markets', 'search --tag Fed --closes-within 30', "Everything Kalshi files under its own 'Fed' tag that closes within 30 days."),
+    ('Find markets', 'search trump --in title --under 15 --sort volume', 'Look only in the question text, keep contracts you can buy at 15c or less, busiest first.'),
+    ('Find markets', 'search CHIGB --count', 'Just the number of matching markets and events. CHIGB is the code in the ticker for one game.'),
+    ('Find markets', 'search fed --tickers', 'Only the tickers, one per line, for pasting or piping into something else.'),
+    ('Find markets', 'search weather --format csv --out weather_all.csv', 'Every match written to a spreadsheet file.'),
+    ('Find markets', 'top --search fed --top 0', 'The older way to get everything: --top 0 means no cut.'),
+    ('Find markets', 'tags', 'The tags Kalshi files its markets under, by category. Use one with search --tag.'),
+    ('Find markets', 'sources KXFEDDECISION-26OCT-H0', 'Where the answer comes from: the official settlement source, the contract terms, the fee type, and who may not trade it.'),
+    ('Find markets', 'status', 'Is the exchange open, and is any maintenance scheduled.'),
 
     ("Look closer", "show KXFEDDECISION-26OCT-H0", "One market live: both sides, fee, break-even, rules and the order book."),
     ("Look closer", "show 2", "The same for row 2 of whatever list you printed last. Row numbers work everywhere."),
@@ -3638,6 +3678,17 @@ EXAMPLES = [
     ("Find an edge", "picks --top 5 --seed 7", "Fix the random draw so the same five come back."),
     ("Find an edge", "picks --top 5 --bias 0", "Turn the pricing-pattern adjustment off: what the picks look like if the market is simply right."),
     ("Find an edge", "picks --top 8 --closes-within 3 --min-volume-24h 5000", "Only liquid markets that resolve within three days."),
+    ('Find an edge', 'flow', 'The trade tape for the whole exchange: the busiest markets in the last 2,000 trades and which side takers are buying.'),
+    ('Find an edge', 'flow KXFEDDECISION-26OCT-H0 --hours 24', "One market's tape for a day: taker lean, average price paid, time slices and the largest single trades."),
+    ('Find an edge', 'flow --search bears packers --since 12:00', 'Every trade since noon (your local time) in the markets matching those words, side by side.'),
+    ('Find an edge', 'flow --search CHIGB --since noon --markets 60 --by lean', 'The same for 60 markets, most one-sided first.'),
+    ('Find an edge', 'flow --by big --category politics elections', 'Exchange-wide, only political markets, ordered by the largest single trade.'),
+    ('Find an edge', 'flow 1 --since 2h --format json', 'Row 1 of the last list, the last two hours, as JSON.'),
+    ('Find an edge', 'pressure', 'Order books that lean hard to one side among the 200 busiest markets, with a warning when one order is most of it.'),
+    ('Find an edge', 'pressure --search fed --min-lean 0.3 --within 5', 'The same check on markets matching a word, with a looser screen.'),
+    ('Find an edge', 'rewards', 'Markets where Kalshi currently pays a pool of money to traders with resting orders, biggest pool first.'),
+    ('Find an edge', 'rewards --by quiet --category economics --top 30', 'Reward pools sorted by pool size against how much trades there: the least competition per dollar.'),
+    ('Find an edge', 'rewards --status upcoming', 'Programs that have been announced and not started yet.'),
 
     ("Decide", "brief KXFEDDECISION-26OCT-H0 --copy", "Write a research prompt for an AI assistant and copy it to the clipboard. Paste it, get a probability back."),
     ("Decide", "brief 1 --out research.txt", "Save the research prompt to a file instead."),
@@ -3721,7 +3772,8 @@ ANSI_RE = re.compile(r"\x1b\[([0-9;]*)m")
 URL_RE = re.compile(r"(https?://[^\s<]+)")
 TICKER_SPAN_RE = re.compile(r'<span class="a96">([A-Z0-9][A-Z0-9._-]{4,})</span>')
 
-RUNNABLE = {"categories", "top", "picks", "best", "grind", "multiply", "x", "anomalies", "ladder", "show", "analyze", "event", "plan", "brief",
+RUNNABLE = {"categories", "top", "search", "tags", "flow", "pressure", "rewards", "sources", "status", "banner",
+            "picks", "best", "grind", "multiply", "x", "anomalies", "ladder", "show", "analyze", "event", "plan", "brief",
             "watchlist", "daily", "examples", "fee", "buy", "sell", "orders", "cancel", "positions", "log", "open", "watch"}
 
 
@@ -3807,7 +3859,12 @@ label{display:block;color:var(--dim);font-size:11.5px;margin:6px 0 2px}
 .blk{border-bottom:1px solid var(--line);padding:10px 0 14px}
 .blk .p{color:var(--dim)} .blk .p b{color:#f2f2f2;font-weight:400}
 pre{margin:0;white-space:pre;font:inherit} .busy{color:var(--cyan)}
-a{color:inherit} .tk{cursor:pointer;border-bottom:1px dotted #29d9e6} .tk:hover{background:#12343a}
+a{color:#6fa8ff} a:hover{color:#fff} .chain{border:1px solid var(--line);border-left:3px solid var(--cyan);border-radius:6px;margin:10px 0;padding:0 10px}
+.chain .ch{color:var(--cyan);padding:6px 0 0;font-size:12px} .opts{display:flex;gap:14px;padding:6px 12px;border-bottom:1px solid var(--line);color:var(--dim);font-size:12.5px;align-items:center;flex-wrap:wrap}
+.opts label{display:flex;gap:5px;align-items:center;cursor:pointer;margin:0} .opts input{padding:0} #hist{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.chip{border:1px solid var(--line);border-radius:10px;padding:1px 8px;cursor:pointer;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .chip:hover{border-color:var(--cyan);color:#fff}
+.art{font-weight:700;line-height:1.15;background:linear-gradient(90deg,#29d9e6 0%,#3d7bff 35%,#f25ad6 62%,#3ddc5a 72%,#f2d544 100%);-webkit-background-clip:text;background-clip:text;color:transparent;display:inline-block}
+.tk{cursor:pointer;border-bottom:1px dotted #29d9e6} .tk:hover{background:#12343a}
 .a1{font-weight:700}.a2{opacity:.7}.a4{text-decoration:underline}.a7{background:var(--cyan);color:#000;padding:0 1px}
 .a90{color:#8a8a8a}.a91{color:#ff5f6b}.a92{color:#3ddc5a}.a93{color:#f2d544}.a94{color:#6fa8ff}.a95{color:#f25ad6}.a96{color:#29d9e6}.a97{color:#fff}
 .a91.a7{background:#ff5f6b;color:#000}.a93.a7{background:#f2d544;color:#000}.a96.a7{background:#29d9e6;color:#000}
@@ -3822,9 +3879,15 @@ a{color:inherit} .tk{cursor:pointer;border-bottom:1px dotted #29d9e6} .tk:hover{
   <div class="row"><select id="sort"></select></div>
   <div class="row"><button class="go" id="btop">Top markets</button></div>
   <div class="row"><select id="preset"></select><button id="bpreset" class="w2">Run</button></div>
-  <div class="row"><input id="q" placeholder="search words"><button id="bq" class="w2">Search</button></div>
+  <div class="row"><input id="q" placeholder="search words, e.g. bears packers"><button id="bq" class="w2">Search all</button></div>
   <label>Price range in cents (optional)</label>
   <div class="row"><input id="pmin" placeholder="min"><input id="pmax" placeholder="max"><select id="pside"><option value="either">either side</option><option value="yes">YES</option><option value="no">NO</option></select></div>
+
+  <h2>READ THE MARKET</h2>
+  <div class="row"><button data-c="flow">Flow: tape</button><button data-c="pressure">Pressure: books</button></div>
+  <div class="row"><button data-c="rewards">Rewards</button><button data-c="tags">Tags</button><button data-c="status">Status</button></div>
+  <label>Flow for the search words above, since (12:00, 2h...)</label>
+  <div class="row"><input id="fs" placeholder="since, e.g. 12:00"><button id="bflow" class="w2">Flow</button></div>
 
   <h2>FIND AN EDGE</h2>
   <div class="row"><button data-c="best">Best 1</button><button data-c="best 3">Best 3</button></div>
@@ -3843,6 +3906,7 @@ a{color:inherit} .tk{cursor:pointer;border-bottom:1px dotted #29d9e6} .tk:hover{
   <div class="row"><input id="tk" placeholder="ticker or row number"></div>
   <div class="row"><button data-t="show">Show</button><button data-t="analyze">Analyze</button><button data-t="analyze" data-x="--deep">Deep</button></div>
   <div class="row"><button data-t="ladder">Ladder</button><button data-t="brief">AI brief</button><button data-t="watchlist add">Watch</button></div>
+  <div class="row"><button data-t="flow">Flow</button><button data-t="sources">Sources</button><button data-t="open">Open on Kalshi</button></div>
   <label>Your probability of YES (%)</label>
   <div class="row"><input id="prob" placeholder="e.g. 70"><button class="go" id="bplan">Plan</button></div>
   <label>Order (dry run)</label>
@@ -3857,14 +3921,23 @@ a{color:inherit} .tk{cursor:pointer;border-bottom:1px dotted #29d9e6} .tk:hover{
   <div class="row"><button data-c="examples">Example commands</button></div>
 </aside>
 <main>
-  <div class="bar"><span>PS&gt; python kalshi_cli.py</span><input id="cmd" placeholder="type any command, e.g.  top --category economics --top 10" autofocus><button class="go" id="run">Run</button></div>
+  <div class="bar"><span>PS&gt; python kalshi_cli.py</span><input id="cmd" placeholder="one command, or several with ; between them:   search fed ; analyze 1 ; flow 1" autofocus><button class="go" id="run">Run</button></div>
+  <div class="opts"><label title="Buttons add to the command box instead of running, so you can build a chain"><input type="checkbox" id="queue">queue clicks into a chain</label><label title="Keep running a chain after a step fails"><input type="checkbox" id="keep">keep going on errors</label><span id="hist"></span><button id="clear">Clear</button></div>
   <div class="sel"><span>selected:</span> <b id="selname">none (click a ticker in the output)</b></div>
-  <div id="out"><div class="blk"><pre><span class="a1 a96 a7"> KALSHI </span>  <span class="a1">dashboard</span>
+  <div id="out"><div class="blk"><pre><span class="art"> _  __    _    _     ____  _   _ ___    ____ _     ___
+| |/ /   / \  | |   / ___|| | | |_ _|  / ___| |   |_ _|
+| ' /   / _ \ | |   \___ \| |_| || |  | |   | |    | |
+| . \  / ___ \| |___ ___) |  _  || |  | |___| |___ | |
+|_|\_\/_/   \_\_____|____/|_| |_|___|  \____|_____|___|</span>
+
+<span class="a1 a96 a7"> KALSHI </span>  <span class="a1">dashboard</span>
 
   Pick something on the left, or type a command above. The first list takes 1 to 2 minutes
   while every open market is downloaded; after that it is saved for 30 minutes.
 
-  <span class="a90">Good places to start:</span>  <span class="a1">daily</span>    <span class="a1">best 3</span>    <span class="a1">anomalies</span>    <span class="a1">examples</span>
+  <span class="a90">Good places to start:</span>  <span class="a1">daily</span>    <span class="a1">best 3</span>    <span class="a1">search fed</span>    <span class="a1">flow</span>    <span class="a1">examples</span>
+  <span class="a90">Chain commands:</span>  put <span class="a1">;</span> between them, e.g.  <span class="a1">search fed rate ; analyze 1 ; flow 1</span>   Row numbers carry from one step to the next.
+  <span class="a90">Links:</span>  every address opens in a new tab. Click a ticker to select it for the buttons on the left.
   <span class="a90">Orders:</span>  buy, sell and cancel are dry runs here%LIVE_NOTE%.</pre></div></div>
 </main></div>
 <script>
@@ -3878,8 +3951,24 @@ let hist=[],hi=0;
 // how many characters fit across the output pane, so tables size themselves like a terminal would
 function cols(){const probe=document.createElement("span");probe.textContent="0".repeat(50);probe.style.visibility="hidden";out.appendChild(probe);
   const w=probe.getBoundingClientRect().width/50;probe.remove();return Math.max(100,Math.min(190,Math.floor((out.clientWidth-30)/w)));}
-async function run(cmd){
-  cmd=cmd.trim(); if(!cmd) return;
+function splitChain(s){return s.split(/\s*(?:;|&&|\n|\bthen\b)\s*/).map(x=>x.trim()).filter(Boolean);}
+let recent=[];try{recent=JSON.parse(localStorage.getItem("kalshi_recent")||"[]");}catch(e){}
+function chips(){$("hist").innerHTML="";recent.slice(0,6).forEach(c=>{const s=document.createElement("span");s.className="chip";s.textContent=c;s.title="Run again: "+c;s.onclick=()=>go(c);$("hist").appendChild(s);});}
+function remember(c){recent=[c].concat(recent.filter(x=>x!=c)).slice(0,12);try{localStorage.setItem("kalshi_recent",JSON.stringify(recent));}catch(e){}chips();}
+// go(): what every button calls. Runs the command, or adds it to the box when "queue clicks" is ticked.
+function go(c){if($("queue").checked){const v=$("cmd").value.trim();$("cmd").value=v?v+" ; "+c:c;$("cmd").focus();}else runChain(c);}
+// runChain(): one command runs as before; several (split on ; && or "then") run in order inside one box.
+async function runChain(text){
+  const steps=splitChain(text); if(!steps.length) return; remember(steps.join(" ; "));
+  if(steps.length==1){await run(steps[0],null);return;}
+  const box=document.createElement("div");box.className="chain";box.innerHTML='<div class="ch"></div>';
+  box.firstChild.textContent="chain of "+steps.length+" commands"; out.prepend(box); out.scrollTop=0;
+  for(let i=0;i<steps.length;i++){const ok=await run(steps[i],box);
+    if(!ok&&!$("keep").checked&&i<steps.length-1){const n=document.createElement("div");n.className="ch";n.style.color="#f2d544";
+      n.textContent="Stopped after step "+(i+1)+". Tick \"keep going on errors\" to run the rest anyway.";box.appendChild(n);break;}}
+}
+async function run(cmd,box){
+  cmd=cmd.trim(); if(!cmd) return false;
   let word="";
   if(/(^|\s)--live(\s|$)/.test(cmd)&&ALLOW_LIVE){
     const need=cmd.startsWith("sell")?"SELL":cmd.startsWith("cancel")?"CANCEL":"BUY";
@@ -3887,12 +3976,12 @@ async function run(cmd){
   hist.push(cmd);hi=hist.length;
   const blk=document.createElement("div");blk.className="blk";
   blk.innerHTML='<div class="p">PS&gt; python kalshi_cli.py <b></b></div><pre class="busy">running...</pre>';
-  blk.querySelector("b").textContent=cmd; out.prepend(blk); out.scrollTop=0;
+  blk.querySelector("b").textContent=cmd; if(box){box.appendChild(blk);blk.scrollIntoView({block:"nearest"});}else{out.prepend(blk);out.scrollTop=0;}
   try{
     const r=await fetch("/run",{method:"POST",headers:{"Content-Type":"application/json","X-Kalshi-Token":TOKEN},
       body:JSON.stringify({cmd:cmd,cols:cols(),confirm:word})});
-    const j=await r.json(); const pre=blk.querySelector("pre"); pre.className=""; pre.innerHTML=j.html||"(no output)";
-  }catch(e){blk.querySelector("pre").textContent="The dashboard server did not answer. Is it still running in the terminal?";}
+    const j=await r.json(); const pre=blk.querySelector("pre"); pre.className=""; pre.innerHTML=j.html||"(no output)"; return j.code===0;
+  }catch(e){blk.querySelector("pre").textContent="The dashboard server did not answer. Is it still running in the terminal?";return false;}
 }
 function sel(t){$("tk").value=t;$("selname").textContent=t;}
 function need(){const t=$("tk").value.trim();if(!t){$("tk").focus();$("tk").placeholder="enter a ticker first";}return t;}
@@ -3903,22 +3992,25 @@ document.addEventListener("click",e=>{
   const b=e.target.closest("button"), t=e.target.closest(".tk");
   if(t){sel(t.dataset.t);return;}
   if(!b)return;
-  if(b.dataset.c){let c=b.dataset.c;if(c.startsWith("best"))c+=" --bankroll "+($("bank").value||500)+($("cat").value?" --category "+$("cat").value:"");run(c);}
-  else if(b.dataset.t){const k=need();if(k)run(b.dataset.t+" "+k+(b.dataset.x?" "+b.dataset.x:""));}
+  if(b.dataset.c){let c=b.dataset.c;if(c.startsWith("best"))c+=" --bankroll "+($("bank").value||500)+($("cat").value?" --category "+$("cat").value:"");go(c);}
+  else if(b.dataset.t){const k=need();if(k)go(b.dataset.t+" "+k+(b.dataset.x?" "+b.dataset.x:""));}
 });
-$("btop").onclick=()=>run("top"+filters()+" --sort "+$("sort").value+" --top "+$("n").value);
-$("bpreset").onclick=()=>run("top --preset "+$("preset").value+($("cat").value?" --category "+$("cat").value:"")+" --top "+$("n").value);
-$("bq").onclick=()=>{if($("q").value.trim())run("top --search "+$("q").value.trim()+filters()+" --top "+$("n").value);};
+$("btop").onclick=()=>go("top"+filters()+" --sort "+$("sort").value+" --top "+$("n").value);
+$("bpreset").onclick=()=>go("top --preset "+$("preset").value+($("cat").value?" --category "+$("cat").value:"")+" --top "+$("n").value);
+$("bq").onclick=()=>{if($("q").value.trim())go("search "+$("q").value.trim()+($("cat").value?" --category "+$("cat").value:""));};
+$("bflow").onclick=()=>{const w=$("q").value.trim();go("flow"+(w?" --search "+w:"")+($("fs").value.trim()?" --since "+$("fs").value.trim():""));};
+$("clear").onclick=()=>{out.innerHTML="";};
 $("q").onkeydown=e=>{if(e.key=="Enter")$("bq").click();};
-$("bpicks").onclick=()=>run("picks --top "+$("n").value+" --bankroll "+($("bank").value||500)+($("cat").value?" --category "+$("cat").value:""));
-$("bgrind").onclick=()=>run("grind --start "+($("gs").value||10)+" --target "+($("gt").value||40)+($("cat").value?" --category "+$("cat").value:""));
-$("bmult").onclick=()=>run("multiply "+$("mx").value+" --stake "+($("ms").value||10)+" --days "+Math.min(7,parseFloat($("md").value)||3)+" --route "+$("mr").value+($("cat").value?" --category "+$("cat").value:""));
-$("bplan").onclick=()=>{const k=need();if(!k)return;if(!$("prob").value){$("prob").focus();return;}run("plan "+k+" --my-prob "+$("prob").value+" --bankroll "+($("bank").value||500));};
+$("bpicks").onclick=()=>go("picks --top "+$("n").value+" --bankroll "+($("bank").value||500)+($("cat").value?" --category "+$("cat").value:""));
+$("bgrind").onclick=()=>go("grind --start "+($("gs").value||10)+" --target "+($("gt").value||40)+($("cat").value?" --category "+$("cat").value:""));
+$("bmult").onclick=()=>go("multiply "+$("mx").value+" --stake "+($("ms").value||10)+" --days "+Math.min(7,parseFloat($("md").value)||3)+" --route "+$("mr").value+($("cat").value?" --category "+$("cat").value:""));
+$("bplan").onclick=()=>{const k=need();if(!k)return;if(!$("prob").value){$("prob").focus();return;}go("plan "+k+" --my-prob "+$("prob").value+" --bankroll "+($("bank").value||500));};
 function order(kind){const k=need();if(!k)return;let c=kind+" "+k+" --side "+$("side").value;
   if($("price").value)c+=" --price "+$("price").value;if($("count").value)c+=" --count "+$("count").value;
-  if(kind=="buy"&&$("prob").value)c+=" --my-prob "+$("prob").value+" --bankroll "+($("bank").value||500);run(c);}
+  if(kind=="buy"&&$("prob").value)c+=" --my-prob "+$("prob").value+" --bankroll "+($("bank").value||500);go(c);}
 $("bbuy").onclick=()=>order("buy"); $("bsell").onclick=()=>order("sell");
-$("run").onclick=()=>{run($("cmd").value);$("cmd").value="";};
+$("run").onclick=()=>{const v=$("cmd").value;$("cmd").value="";$("queue").checked=false;runChain(v);};
+chips();
 $("cmd").onkeydown=e=>{if(e.key=="Enter")$("run").click();
   else if(e.key=="ArrowUp"&&hi>0){hi--;$("cmd").value=hist[hi];e.preventDefault();}
   else if(e.key=="ArrowDown"){hi=Math.min(hist.length,hi+1);$("cmd").value=hist[hi]||"";}};
@@ -3977,15 +4069,13 @@ def cmd_serve(a):
         sys.exit(f"Could not start on port {a.port} ({err}). Try: serve --port {a.port + 1}")
     url = f"http://127.0.0.1:{a.port}"
     print(banner("KALSHI", paint("dashboard running", "bold")))
-    print(f"\n  Open {paint(url, 'blue', 'ul')} in your browser.   {paint('Ctrl+C here to stop it.', 'gray')}")
+    print(f"\n  Open {link(url)} in your browser.   {paint('Ctrl+C here to stop it.', 'gray')}")
     print("  " + (paint("Live orders are ON for this session.", "red", "bold") if a.allow_live
                   else paint("Orders are dry runs only. Restart with --allow-live to send real ones.", "gray")))
     print(paint("  Only this computer can reach it.", "gray"))
     if not a.no_browser:
-        try:
-            webbrowser.open(url)
-        except Exception:
-            pass
+        used = open_in_browser(url, a.browser)           # Chrome unless --browser says otherwise
+        print(paint(f"  Opened in {used}.", "gray") + paint("  Other choices: --browser edge | firefox | brave | default | PATH", "gray"))
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -4300,6 +4390,13 @@ def cmd_firehose(a):
     for category in ("economics", "politics", "weather", "tech"):
         step(["top", "--category", category, "--top", "8"], sections)
     # ---- 2. edge finders ----
+    step(["search", "fed", "--limit", "12"], sections)
+    step(["search", "fed", "rate", "--group"], sections)
+    step(["tags"], sections)
+    step(["status"], sections)
+    step(["flow", "--no-links"], sections)
+    step(["pressure", "--top", "10"], sections)
+    step(["rewards", "--top", "12"], sections)
     step(["anomalies", "--top", "5"], sections)
     step(["picks", "--top", "10", "--bankroll", bank, "--seed", "7"], sections)
     step(["best", "5", "--by", "odds", "--bankroll", bank], sections)
@@ -4363,6 +4460,951 @@ def cmd_firehose(a):
 
 
 # ----------------------------------------------------------------------------
+# Clickable links, the startup banner, and browser choice
+# ----------------------------------------------------------------------------
+# Modern terminals (Windows Terminal, VS Code, iTerm, most Linux terminals)
+# understand a "hyperlink" escape code: the text on screen becomes clickable
+# and opens the address behind it. Terminals that do not know the code simply
+# show the text. Links are only written when the output is a real terminal, so
+# files, pipes, the dashboard and the PDF writer never see the codes.
+
+LINKS_ON = False          # set by setup_links()
+
+
+def setup_links(mode="auto"):
+    """Decide whether to write clickable links. mode: auto, always or never."""
+    global LINKS_ON
+    if mode == "always":
+        LINKS_ON = True
+    elif mode == "never" or os.environ.get("KALSHI_LINKS", "").lower() == "never":
+        LINKS_ON = False
+    else:
+        LINKS_ON = COLOR_ON and sys.stdout.isatty()
+
+
+def link(url, text=None):
+    """
+    A clickable link. With no text, the address itself is shown (blue, underlined)
+    and is clickable. With text, the text is what you click, e.g. a ticker that
+    opens its kalshi.com page.
+    """
+    shown = text if text is not None else paint(url, "blue", "ul")
+    if not LINKS_ON or not url:
+        return shown
+    return f"\x1b]8;;{url}\x1b\\{shown}\x1b]8;;\x1b\\"
+
+
+BANNER_ART = r"""
+ _  __    _    _     ____  _   _ ___    ____ _     ___
+| |/ /   / \  | |   / ___|| | | |_ _|  / ___| |   |_ _|
+| ' /   / _ \ | |   \___ \| |_| || |  | |   | |    | |
+| . \  / ___ \| |___ ___) |  _  || |  | |___| |___ | |
+|_|\_\/_/   \_\_____|____/|_| |_|___|  \____|_____|___|
+""".strip("\n").split("\n")
+
+# 256-color codes, left to right: cyan -> blue -> magenta across KALSHI, then green -> yellow across CLI.
+BANNER_KALSHI = [51, 45, 39, 33, 63, 99, 135, 171, 207]
+BANNER_CLI = [46, 82, 118, 154, 190, 226]
+BANNER_SPLIT = 37         # the column where "CLI" starts
+FIRST_RUN_FILE = os.path.join(os.environ.get("KALSHI_HOME", os.path.join(os.path.expanduser("~"), ".kalshi_cli")), "banner_seen")
+
+
+def print_banner(stream=None):
+    """The tool's name in large letters, colored column by column, with a one-line description."""
+    stream = stream or sys.stdout
+    print(file=stream)
+    for row in BANNER_ART:
+        if not COLOR_ON:
+            print(" " + row, file=stream)
+            continue
+        out = []
+        for col, ch in enumerate(row):
+            if ch == " ":
+                out.append(ch)
+                continue
+            if col < BANNER_SPLIT:
+                shade = BANNER_KALSHI[min(len(BANNER_KALSHI) - 1, col * len(BANNER_KALSHI) // BANNER_SPLIT)]
+            else:
+                span = max(1, len(row) - BANNER_SPLIT)
+                shade = BANNER_CLI[min(len(BANNER_CLI) - 1, (col - BANNER_SPLIT) * len(BANNER_CLI) // span)]
+            out.append(f"\x1b[1;38;5;{shade}m{ch}")
+        print(" " + "".join(out) + "\x1b[0m", file=stream)
+    print(" " + paint("find markets", "cyan") + paint("  >  ", "gray") + paint("find an edge", "blue") + paint("  >  ", "gray")
+          + paint("decide", "magenta") + paint("  >  ", "gray") + paint("trade", "green") + paint("  >  ", "gray")
+          + paint("keep score", "yellow"), file=stream)
+
+
+def first_run_banner():
+    """Show the banner once, the first time the tool is run in a terminal on this computer."""
+    if not sys.stdout.isatty() or os.path.exists(FIRST_RUN_FILE):
+        return
+    print_banner()
+    print(paint("\n First run on this computer. ", "gray") + "Start with " + paint("python kalshi_cli.py examples", "bold")
+          + paint("  (this banner shows once; `banner` shows it again)", "gray"))
+    try:
+        os.makedirs(os.path.dirname(FIRST_RUN_FILE), exist_ok=True)
+        with open(FIRST_RUN_FILE, "w", encoding="utf-8") as fh:
+            fh.write(dt.datetime.now().isoformat())
+    except OSError:
+        pass                                           # cannot write the marker: the banner just shows again next time
+
+
+def cmd_banner(a):
+    """Print the banner and a short list of where to start."""
+    print_banner()
+    print()
+    starts = [("examples", "about 120 example commands, explained"),
+              ("search bears packers", "every open market matching those words"),
+              ("best 3", "the three top-scoring markets"),
+              ("multiply 5x --stake 20", "ways to turn $20 into $100 within 3 days"),
+              ("flow", "what is trading right now, and which way the money leans"),
+              ("rewards", "markets where Kalshi pays for resting orders"),
+              ("serve", "the same tool as a dashboard in your browser"),
+              ("firehose --open", "everything, as one color PDF")]
+    for command, what in starts:
+        print("  " + paint(f"python kalshi_cli.py {command:<26}", "bold") + paint(what, "gray"))
+    print("\n  " + paint("Options for one command:  python kalshi_cli.py <command> -h", "gray"))
+
+
+BROWSERS = {
+    # name: (Windows program paths, macOS application name, Linux program names)
+    "chrome": ([r"%ProgramFiles%\Google\Chrome\Application\chrome.exe", r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe",
+                r"%LocalAppData%\Google\Chrome\Application\chrome.exe"], "Google Chrome",
+               ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]),
+    "edge": ([r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe", r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"],
+             "Microsoft Edge", ["microsoft-edge", "microsoft-edge-stable"]),
+    "firefox": ([r"%ProgramFiles%\Mozilla Firefox\firefox.exe", r"%ProgramFiles(x86)%\Mozilla Firefox\firefox.exe"],
+                "Firefox", ["firefox"]),
+    "brave": ([r"%ProgramFiles%\BraveSoftware\Brave-Browser\Application\brave.exe",
+               r"%LocalAppData%\BraveSoftware\Brave-Browser\Application\brave.exe"], "Brave Browser", ["brave-browser", "brave"]),
+}
+
+
+def open_in_browser(url, choice="chrome"):
+    """
+    Open an address in the chosen browser and return the name of what was used.
+    choice: chrome (the default), edge, firefox, brave, default (whatever the
+    computer opens links with), or the full path of a browser program.
+    If the chosen browser is not installed, the computer's default is used.
+    """
+    choice = (choice or "chrome").strip()
+    try:
+        if choice.lower() in BROWSERS:
+            windows_paths, mac_name, linux_names = BROWSERS[choice.lower()]
+            if os.name == "nt":
+                for raw in windows_paths:
+                    path = os.path.expandvars(raw)
+                    if os.path.exists(path):
+                        subprocess.Popen([path, url])
+                        return choice.lower()
+            elif sys.platform == "darwin":
+                if subprocess.run(["open", "-a", mac_name, url], capture_output=True).returncode == 0:
+                    return choice.lower()
+            else:
+                for name in linux_names:
+                    path = shutil.which(name)
+                    if path:
+                        subprocess.Popen([path, url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        return choice.lower()
+        elif choice.lower() != "default" and (os.path.exists(choice) or shutil.which(choice)):
+            subprocess.Popen([shutil.which(choice) or choice, url])
+            return choice
+        webbrowser.open(url)
+        return "your default browser" + ("" if choice.lower() == "default" else f" ({choice} was not found)")
+    except Exception:
+        return "nothing (open the address yourself)"
+
+
+# ----------------------------------------------------------------------------
+# Search: every market matching your words
+# ----------------------------------------------------------------------------
+# `top --search` cuts the list to the top N. `search` is the opposite default:
+# it returns EVERYTHING that matches, in every category including sports and
+# crypto, and tells you how the matches group into events.
+
+SEARCH_FIELDS = {
+    "title": lambda m: m["title"],                       # the question plus the outcome label
+    "event": lambda m: m["event_title"] + " " + m["event"],
+    "ticker": lambda m: m["ticker"],
+    "series": lambda m: m["series"],
+    "category": lambda m: m["category"],
+}
+
+
+def cmd_search(a):
+    """Find every open market matching the keywords, with no top-N cut unless one is asked for."""
+    rows = add_clock_fields(load_markets(a.cache_minutes, a.refresh))
+    fields = a.inside or list(SEARCH_FIELDS)
+    words = [w.lower() for w in a.words]
+    if a.phrase:                                         # --phrase: the words must appear together, in that order
+        words = [" ".join(words)] if words else []
+    banned = [w.lower() for w in (a.exclude or [])]
+    pattern = None
+    if a.regex:
+        try:
+            pattern = re.compile(a.regex, re.IGNORECASE)
+        except re.error as err:
+            sys.exit(f"--regex is not a valid pattern: {err}")
+    if not words and not pattern and not a.tag and not a.series:
+        sys.exit("Give at least one keyword, e.g.  search bears packers   (or use --regex, --tag or --series).")
+    wanted = {CATEGORIES[c].lower() for c in (a.category or [])}
+    skipped = {CATEGORIES[c].lower() for c in (a.skip_category or [])}
+    series_wanted = {s.upper() for s in (a.series or [])}
+    if a.tag:
+        # A tag is Kalshi's own label for a group of series ("Fed", "Daily temperature", "BTC"). Ask which series carry it.
+        for tag in a.tag:
+            listed = api_get("/series", {"tags": tag}).get("series") or []
+            series_wanted |= {s["ticker"].upper() for s in listed}
+        if not series_wanted:
+            sys.exit(f"No series carries the tag {', '.join(a.tag)}. Run `tags` to see the tags Kalshi uses.")
+
+    found = []
+    for m in rows:
+        category = m["category"].lower()
+        if (wanted and category not in wanted) or category in skipped:
+            continue
+        if series_wanted and m["series"].upper() not in series_wanted:
+            continue
+        haystack = " ".join(SEARCH_FIELDS[f](m) for f in fields).lower()
+        if words:
+            hits = [w in haystack for w in words]
+            if not (any(hits) if a.any_word else all(hits)):
+                continue
+        if pattern and not pattern.search(haystack):
+            continue
+        if any(w in haystack for w in banned):
+            continue
+        if m["vol24"] < a.min_volume_24h:
+            continue
+        if a.closes_within is not None and (m["hours_left"] is None or m["hours_left"] > a.closes_within * 24):
+            continue
+        # Price filters look at the cheaper side you could buy right now.
+        if not pick_side(m, "either", a.over, a.under):
+            if a.over is not None or a.under is not None:
+                continue
+            m["buy_side"], m["buy_price"] = "", None
+        found.append(m)
+
+    _, key, reverse = SORTS[a.sort]
+    found.sort(key=key, reverse=reverse)
+    total = len(found)
+    events = group_by_event(found)
+    if a.limit:                                          # --limit 0 (the default) means no cut at all
+        found = found[: a.limit]
+    save_last(found)
+
+    if a.count:
+        print(f"{total} markets in {len(events)} events")
+        return
+    if a.tickers:                                        # --tickers: one ticker per line, for piping into something else
+        for m in found:
+            print(m["ticker"])
+        return
+    if emit(found, LIST_COLUMNS + ["event", "series"], a.format, a.out):
+        return
+
+    asked = " ".join(a.words) if a.words else (a.regex or ", ".join(a.tag or a.series or []))
+    print(banner("KALSHI", paint(f"search: {total:,} market{'s' if total != 1 else ''} in {len(events):,} event{'s' if len(events) != 1 else ''}", "bold")
+                 + paint(f"  matching \"{asked}\"", "gray")))
+    how = ("the exact phrase" if a.phrase else "any of the words" if a.any_word else "all of the words") if a.words else "pattern"
+    print(paint("matched:   ", "gray") + how + paint("  in  ", "gray") + ", ".join(fields)
+          + (paint("   not: ", "gray") + ", ".join(banned) if banned else "")
+          + paint("   sorted by: ", "gray") + SORTS[a.sort][0]
+          + (paint(f"   showing the first {len(found)}", "yellow") if a.limit and total > len(found) else paint("   showing all", "gray")))
+    if not found:
+        print("\n" + paint("Nothing matches.", "yellow", "bold") + " Try fewer words, --any, or `tags` to see how Kalshi labels things.")
+        return
+
+    # ---- how the matches group into events ----
+    if len(events) > 1 or a.group:
+        ranked = sorted(events.items(), key=lambda kv: -sum(m["vol24"] for m in kv[1]))
+        shown = ranked if a.group else ranked[:12]
+        print("\n" + paint(f"  {'EVENT':<34} {'MARKETS':>7} {'24H VOL':>8} {'ENDS':>5}  WHAT", "bold", "cyan"))
+        for event, markets in shown:
+            first = markets[0]
+            soonest = min((m["hours_left"] for m in markets if m["hours_left"] is not None), default=None)
+            name = first.get("event_title") or first["title"]
+            print(f"  {link(first['url'], cell(event[:34], 34, 'cyan'))} {len(markets):>7} "
+                  f"{short_number(sum(m['vol24'] for m in markets)):>8} {time_left(soonest):>5}  {paint(name[:70], 'bold')}")
+        if len(ranked) > len(shown):
+            print(paint(f"  ... and {len(ranked) - len(shown)} more events. Add --group to list them all.", "gray"))
+    if a.group:
+        print("\n" + paint("Next: ", "gray") + paint("event EVENT_TICKER", "bold") + paint("   ladder EVENT_TICKER", "bold")
+              + paint("   or run the search again without --group for every market", "gray"))
+        return
+    print()
+    print_table(found, show_links=not a.no_links)
+    plain_words(describe_rows(found))
+    print("\n" + paint("Next: ", "gray") + paint("show 1", "bold") + paint("   analyze 1", "bold") + paint("   flow 1", "bold")
+          + paint("   plan 1 --my-prob N", "bold") + paint("   (row numbers work in place of tickers)", "gray"))
+
+
+def cmd_tags(a):
+    """List the tags Kalshi files its series under, by category. A tag can be passed to `search --tag`."""
+    data = api_get("/search/tags_by_categories").get("tags_by_categories") or {}
+    wanted = (a.category or "").lower()
+    print(banner("KALSHI", paint("tags", "bold") + paint("  how Kalshi labels groups of markets. Use one with: search --tag \"Fed\"", "gray")) + "\n")
+    width = shutil.get_terminal_size((120, 30)).columns
+    for category in sorted(data):
+        tags = data[category] or []
+        if wanted and wanted not in category.lower():
+            continue
+        if not tags:
+            continue
+        print(paint(f"  {category}", "bold", "cyan") + paint(f"  ({len(tags)})", "gray"))
+        line = "   "
+        for tag in tags:
+            piece = f" {tag}  |"
+            if len(line) + len(piece) > width - 2:
+                print(line.rstrip("|"))
+                line = "   "
+            line += piece
+        print(line.rstrip("|") + "\n")
+
+
+# ----------------------------------------------------------------------------
+# Flow: who is buying, from the trade tape
+# ----------------------------------------------------------------------------
+# Every trade on Kalshi is public, and each one records which side was the
+# TAKER: the person who crossed the spread to get filled right now. Takers are
+# the impatient side, so a tape where takers keep buying YES says something
+# the resting quotes do not. It is a clue, not a forecast: one large trader
+# can be wrong, and a market maker hedging elsewhere looks the same on tape.
+
+def parse_since(text):
+    """Turn '12:00', '12pm', 'noon', '2h', '90m' or '2026-10-11 12:00' (your local time) into a Unix timestamp."""
+    now = dt.datetime.now().astimezone()
+    raw = text.strip().lower()
+    span = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(m|min|h|hr|hrs|d)", raw)
+    if span:
+        minutes = float(span.group(1)) * {"m": 1, "min": 1, "h": 60, "hr": 60, "hrs": 60, "d": 1440}[span.group(2)]
+        return int((now - dt.timedelta(minutes=minutes)).timestamp())
+    if raw in ("noon", "12noon"):
+        raw = "12:00"
+    if raw == "midnight":
+        raw = "00:00"
+    clock = re.fullmatch(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", raw)
+    if clock:
+        hour, minute = int(clock.group(1)), int(clock.group(2) or 0)
+        if clock.group(3) == "pm" and hour < 12:
+            hour += 12
+        if clock.group(3) == "am" and hour == 12:
+            hour = 0
+        if hour > 23 or minute > 59:
+            sys.exit(f"--since {text}: that is not a time of day.")
+        return int(now.replace(hour=hour, minute=minute, second=0, microsecond=0).timestamp())
+    for pattern in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        try:
+            return int(dt.datetime.strptime(text.strip(), pattern).astimezone().timestamp())
+        except ValueError:
+            pass
+    sys.exit(f"--since {text}: write a time like 12:00, 12pm, noon, 2h (two hours ago) or 2026-10-11 12:00.")
+
+
+def fetch_trades(ticker=None, since_ts=None, most=1000):
+    """Download trades, newest first, for one market or the whole exchange, back to since_ts or `most` trades."""
+    trades, cursor = [], ""
+    while len(trades) < most:
+        page = api_get("/markets/trades", {"ticker": ticker, "min_ts": since_ts, "cursor": cursor,
+                                           "limit": min(1000, most - len(trades))})
+        batch = page.get("trades") or []
+        trades += batch
+        cursor = page.get("cursor") or ""
+        if not cursor or not batch:
+            break
+    out = []
+    for t in trades:
+        price = cents(t.get("yes_price_dollars"))
+        count = num(t.get("count_fp"))
+        if price is None or not count:
+            continue
+        side = (t.get("taker_outcome_side") or t.get("taker_side") or "").lower()
+        when = parse_time(t.get("created_time") or "")
+        out.append({"ticker": t.get("ticker", ""), "price": price, "count": count, "side": side, "when": when,
+                    "dollars": count * (price if side == "yes" else 100 - price) / 100.0, "block": bool(t.get("is_block_trade"))})
+    return out
+
+
+def tape_summary(trades):
+    """Totals for a list of trades: contracts and dollars taken on each side, the lean, and the average price."""
+    yes = sum(t["count"] for t in trades if t["side"] == "yes")
+    no = sum(t["count"] for t in trades if t["side"] == "no")
+    total = sum(t["count"] for t in trades)
+    ordered = sorted((t for t in trades if t["when"]), key=lambda t: t["when"])
+    return {"trades": len(trades), "contracts": total, "yes": yes, "no": no,
+            "dollars": sum(t["dollars"] for t in trades),
+            "lean": (yes - no) / (yes + no) if (yes + no) else 0.0,      # +1 = all YES takers, -1 = all NO takers
+            "vwap": sum(t["price"] * t["count"] for t in trades) / total if total else None,
+            "first": ordered[0]["price"] if ordered else None, "last": ordered[-1]["price"] if ordered else None,
+            "start": ordered[0]["when"] if ordered else None, "end": ordered[-1]["when"] if ordered else None}
+
+
+def lean_cell(lean, width=14):
+    """A two-sided bar: green to the right when takers bought YES, magenta to the left when they bought NO."""
+    half = width // 2
+    size = int(round(min(1.0, abs(lean)) * half))
+    full, empty = ("█", "░") if UNICODE_ON else ("#", ".")
+    if lean >= 0:
+        return paint(empty * half, "gray") + paint(full * size, "green") + paint(empty * (half - size), "gray")
+    return paint(empty * (half - size), "gray") + paint(full * size, "magenta") + paint(empty * half, "gray")
+
+
+def local_clock(moment, with_day=False, seconds=False):
+    """A UTC time shown in this computer's time zone."""
+    if not moment:
+        return "?"
+    return moment.astimezone().strftime("%a %H:%M" if with_day else "%H:%M:%S" if seconds else "%H:%M")
+
+
+FLOW_COLUMNS = ["ticker", "title", "trades", "contracts", "dollars", "yes", "no", "lean", "vwap", "first", "last", "url"]
+
+
+def cmd_flow(a):
+    """Read the trade tape: one market in detail, every market matching a search, or the whole exchange."""
+    since_ts = parse_since(a.since) if a.since else (int(time.time() - a.hours * 3600) if a.hours else None)
+    window = (f"since {local_clock(dt.datetime.fromtimestamp(since_ts, dt.timezone.utc), True)}" if since_ts
+              else f"the last {a.trades:,} trades")
+
+    # ---------------- one market ----------------
+    if a.market:
+        ticker, _ = resolve(a.market)
+        market = api_get("/markets/" + urllib.parse.quote(ticker))["market"]
+        event = api_get("/events/" + urllib.parse.quote(market.get("event_ticker", ""))).get("event", {})
+        m = flatten(event, market)
+        trades = fetch_trades(ticker, since_ts, a.trades)
+        s = tape_summary(trades)
+        if a.format != "table":
+            emit([{**m, **s}], FLOW_COLUMNS, a.format, a.out)
+            return
+        print(banner("KALSHI", paint("flow", "bold") + paint(f"  the trade tape, {window}", "gray")))
+        print("\n" + paint(m["title"], "bold", "white"))
+        print(f"{link(m['url'], paint(ticker, 'cyan'))}  {category_tag(m['category'])}  {link(m['url'])}")
+        if not trades:
+            print("\n" + paint("No trades in that window.", "yellow", "bold") + " Widen it with --hours 24 or drop --since.")
+            return
+        print(f"\n  {paint(str(s['trades']), 'bold')} trades   {paint(short_number(s['contracts']), 'bold')} contracts   "
+              f"about {paint('$' + format(s['dollars'], ',.0f'), 'bold')} paid by takers   "
+              f"{local_clock(s['start'], True)} to {local_clock(s['end'], True)}")
+        tone = "green" if s["lean"] > 0.1 else "magenta" if s["lean"] < -0.1 else "gray"
+        print(f"  takers bought {paint('YES ' + short_number(s['yes']), 'green', 'bold')} vs {paint('NO ' + short_number(s['no']), 'magenta', 'bold')}"
+              f"   lean {lean_cell(s['lean'], 20)} {paint(format(s['lean'], '+.0%'), tone, 'bold')}")
+        print(f"  YES price: first {s['first']:g}c   average paid {s['vwap']:.1f}c   last {s['last']:g}c   now {price_text(m['yes_bid'])}/{price_text(m['yes_ask'])}")
+
+        # ---- the window cut into slices, oldest first ----
+        ordered = sorted((t for t in trades if t["when"]), key=lambda t: t["when"])
+        span = (ordered[-1]["when"] - ordered[0]["when"]).total_seconds() or 1.0
+        slices = max(1, min(a.buckets, len(ordered)))
+        step = span / slices
+        print("\n" + paint(f"  {'FROM':<10} {'TRADES':>6} {'CONTRACTS':>9}  {'NO  < takers >  YES':^20} {'LEAN':>6} {'CLOSE':>6}", "bold", "cyan"))
+        for i in range(slices):
+            lo = ordered[0]["when"] + dt.timedelta(seconds=step * i)
+            hi = ordered[0]["when"] + dt.timedelta(seconds=step * (i + 1))
+            part = [t for t in ordered if lo <= t["when"] < hi or (i == slices - 1 and t["when"] == hi)]
+            if not part:
+                continue
+            p = tape_summary(part)
+            print(f"  {local_clock(lo, span > 86400, span < 1800):<10} {p['trades']:>6} {short_number(p['contracts']):>9}  {lean_cell(p['lean'], 20)} "
+                  f"{p['lean']:>+6.0%} {p['last']:>5g}c")
+
+        # ---- the biggest single trades ----
+        big = sorted(trades, key=lambda t: -t["count"])[: a.top]
+        print("\n" + paint(f"  LARGEST TRADES", "bold", "cyan"))
+        for t in big:
+            side = cell("took " + t["side"].upper(), 9, *side_style(t["side"].upper()))
+            print(f"  {local_clock(t['when'], True):<10} {side} {short_number(t['count']):>8} @ {t['price']:g}c YES"
+                  f"   ${t['dollars']:,.0f}" + (paint("   block trade", "yellow") if t["block"] else ""))
+        biggest_share = big[0]["count"] / s["contracts"] if big and s["contracts"] else 0
+        plain_words([
+            f"Takers are the side that paid up to trade right away. Here they leaned {abs(s['lean']):.0%} toward "
+            f"{'YES' if s['lean'] >= 0 else 'NO'} by contract count."
+            + (" That is close to balanced." if abs(s["lean"]) < 0.1 else ""),
+            (f"The price moved from {s['first']:g}c to {s['last']:g}c over the window, "
+             + ("with the flow." if (s["last"] - s["first"]) * s["lean"] > 0 else "against the flow, which means the resting side absorbed it.")
+             if s["first"] != s["last"] and abs(s["lean"]) >= 0.1 else ""),
+            (f"One trade is {biggest_share:.0%} of everything here, so the lean is mostly one account's opinion."
+             if biggest_share >= 0.25 else ""),
+            "A lean is a clue about who is impatient, not a forecast. Check it against your own number with `plan`.",
+        ])
+        print("\n" + paint("Next: ", "gray") + paint(f"analyze {ticker} --deep", "bold") + paint(f"   plan {ticker} --my-prob N", "bold"))
+        return
+
+    # ---------------- several markets: a search, or the whole exchange ----------------
+    rows = add_clock_fields(load_markets(a.cache_minutes, a.refresh))
+    by_ticker = {m["ticker"]: m for m in rows}
+    results = []
+    if a.search:
+        words = [w.lower() for w in a.search]
+        chosen = [m for m in rows if all(w in f"{m['title']} {m['event_title']} {m['ticker']}".lower() for w in words)]
+        chosen.sort(key=lambda m: -m["vol24"])
+        matched = len(chosen)
+        chosen = chosen[: a.markets]
+        if not chosen:
+            sys.exit("No open market matches those words. Try `search` first to see what is there.")
+        print(paint(f"Reading the tape for {len(chosen)} of {matched} matching markets (the busiest first; --markets N for more)...", "gray"),
+              file=sys.stderr)
+        for m in chosen:
+            trades = fetch_trades(m["ticker"], since_ts, a.trades)
+            if trades:
+                results.append({**m, **tape_summary(trades), "biggest": max(t["count"] for t in trades)})
+        scope = f"markets matching \"{' '.join(a.search)}\""
+    else:
+        trades = fetch_trades(None, since_ts, a.trades)
+        grouped = {}
+        for t in trades:
+            grouped.setdefault(t["ticker"], []).append(t)
+        wanted = {CATEGORIES[c].lower() for c in (a.category or [])}
+        for ticker, part in grouped.items():
+            m = by_ticker.get(ticker)
+            if not m or (wanted and m["category"].lower() not in wanted):
+                continue
+            results.append({**m, **tape_summary(part), "biggest": max(t["count"] for t in part)})
+        scope = "the whole exchange" + (", " + ", ".join(a.category) if a.category else "")
+    results = [r for r in results if r["contracts"] >= a.min_contracts]
+    order = {"volume": lambda r: -r["contracts"], "lean": lambda r: -abs(r["lean"]) * math.log10(10 + r["contracts"]),
+             "dollars": lambda r: -r["dollars"], "big": lambda r: -r["biggest"]}[a.by]
+    results.sort(key=order)
+    total_rows = len(results)
+    if not a.search:
+        results = results[: a.top if a.top != 8 else 20]      # the exchange-wide view lists 20 unless --top says otherwise
+    save_last(results)
+    if emit(results, FLOW_COLUMNS, a.format, a.out):
+        return
+
+    print(banner("KALSHI", paint("flow", "bold") + paint(f"  {scope}, {window}", "gray")))
+    if not results:
+        print("\n" + paint("No trades found.", "yellow", "bold") + " Widen the window with --hours, or lower --min-contracts.")
+        return
+    everything = {"yes": sum(r["yes"] for r in results), "no": sum(r["no"] for r in results)}
+    width = shutil.get_terminal_size((120, 30)).columns
+    title_w = max(22, min(60, width - 84))
+    print(paint(f"\n{'#':>3} {'TRADES':>6} {'CONTRACTS':>9} {'$ TAKEN':>9}  {'NO < takers > YES':^14} {'LEAN':>6} {'AVG':>5} {'MOVE':>9} {'BIGGEST':>8}  MARKET",
+                "bold", "cyan"))
+    print(rule(min(width - 1, 82 + title_w)))
+    for i, r in enumerate(results, 1):
+        move = "" if r["first"] is None or r["first"] == r["last"] else f"{r['first']:g}>{r['last']:g}c"
+        move_tone = "green" if (r["last"] or 0) > (r["first"] or 0) else "red"
+        title = r["title"] if len(r["title"]) <= title_w else r["title"][:title_w - 3] + "..."
+        cut = title.rfind(" [")
+        title = paint(title, "bold") if cut <= 0 else paint(title[:cut], "bold") + paint(title[cut:], "cyan")
+        tone = "green" if r["lean"] > 0.1 else "magenta" if r["lean"] < -0.1 else "gray"
+        print(f"{cell(i, 3, 'gray', align='>')} {r['trades']:>6} {short_number(r['contracts']):>9} {'$' + short_number(r['dollars']):>9}  "
+              f"{lean_cell(r['lean'], 14)} {cell(format(r['lean'], '+.0%'), 6, tone, 'bold', align='>')} {r['vwap']:>4.0f}c "
+              f"{cell(move, 9, move_tone, align='>')} {short_number(r['biggest']):>8}  {title}")
+        if not a.no_links:
+            print(f"    {link(r['url'], paint(r['ticker'], 'cyan'))}  {category_tag(r['category'])}  {link(r['url'])}")
+    lean_all = (everything["yes"] - everything["no"]) / ((everything["yes"] + everything["no"]) or 1)
+    strongest = max(results, key=lambda r: abs(r["lean"]) * r["contracts"])
+    plain_words([
+        f"{total_rows} markets traded in this window; {len(results)} are listed, sorted by {a.by}.",
+        f"Across them, takers leaned {abs(lean_all):.0%} toward {'YES' if lean_all >= 0 else 'NO'}.",
+        f"The heaviest one-sided flow is in \"{strongest['title'][:60]}\": {abs(strongest['lean']):.0%} toward "
+        f"{'YES' if strongest['lean'] >= 0 else 'NO'} on {short_number(strongest['contracts'])} contracts.",
+        "LEAN is taker YES minus taker NO, as a share of contracts. AVG is the average YES price paid. MOVE is first to last trade.",
+        "Flow shows who was impatient. It does not show who was right.",
+    ])
+    print("\n" + paint("Next: ", "gray") + paint("flow 1", "bold") + paint("   analyze 1 --deep", "bold") + paint("   pressure", "bold")
+          + paint("   (flow N drills into one market's tape)", "gray"))
+
+
+# ----------------------------------------------------------------------------
+# Pressure: which way the resting orders lean
+# ----------------------------------------------------------------------------
+# `flow` reads trades that already happened. `pressure` reads the orders still
+# waiting: how many dollars are bid for YES near the top of the book against
+# how many are bid for NO. A lopsided book often comes before a move, and just
+# as often it is one large order that gets pulled. Treat it as a place to look.
+
+def cmd_pressure(a):
+    """Scan busy markets for order books that lean hard to one side."""
+    rows = add_clock_fields(load_markets(a.cache_minutes, a.refresh))
+    wanted = {CATEGORIES[c].lower() for c in (a.category or [])}
+    skipped = {CATEGORIES[c].lower() for c in (a.skip_category if a.skip_category is not None else ["sports", "crypto"])}
+    words = [w.lower() for w in (a.search or [])]
+    pool = []
+    for m in rows:
+        category = m["category"].lower()
+        if (wanted and category not in wanted) or (not wanted and not words and category in skipped):
+            continue
+        if words and not all(w in f"{m['title']} {m['event_title']} {m['ticker']}".lower() for w in words):
+            continue
+        if m["vol24"] < a.min_volume_24h or m["yes_bid"] is None or m["yes_ask"] is None:
+            continue
+        if not (a.min_price <= (m["yes_bid"] + m["yes_ask"]) / 2.0 <= a.max_price):
+            continue
+        pool.append(m)
+    pool.sort(key=lambda m: -m["vol24"])
+    pool = pool[: a.scan]
+    found = []
+    for start in range(0, len(pool), 100):                 # the API takes up to 100 tickers in one request
+        batch = pool[start:start + 100]
+        books = api_get("/markets/orderbooks", [("tickers", m["ticker"]) for m in batch]).get("orderbooks") or []
+        lookup = {b.get("ticker"): b.get("orderbook_fp") or {} for b in books}
+        for m in batch:
+            book = lookup.get(m["ticker"]) or {}
+            sides = {}
+            for name in ("yes", "no"):
+                levels = [(cents(p), num(q)) for p, q in (book.get(name + "_dollars") or [])]
+                levels = [(p, q) for p, q in levels if p is not None and q]
+                if not levels:
+                    sides[name] = (None, 0.0, 0.0)
+                    continue
+                best = max(p for p, _ in levels)
+                near = [(p, q) for p, q in levels if p >= best - a.within]
+                # Dollars resting within a few cents of the best bid, and the single largest order among them.
+                sides[name] = (best, sum(p * q for p, q in near) / 100.0, max(p * q for p, q in near) / 100.0)
+            yes_usd, no_usd = sides["yes"][1], sides["no"][1]
+            if yes_usd + no_usd < a.min_depth:
+                continue
+            lean = (yes_usd - no_usd) / (yes_usd + no_usd)
+            wall = max(sides["yes"][2], sides["no"][2]) / (yes_usd + no_usd)
+            found.append({**m, "yes_depth": yes_usd, "no_depth": no_usd, "lean": lean, "wall": wall,
+                          "buy_side": "YES" if lean > 0 else "NO", "buy_price": m["yes_ask"] if lean > 0 else m["no_ask"]})
+    found = [f for f in found if abs(f["lean"]) >= a.min_lean]
+    found.sort(key=lambda f: -abs(f["lean"]) * math.log10(10 + f["yes_depth"] + f["no_depth"]))
+    total = len(found)
+    found = found[: a.top]
+    save_last(found)
+    if emit(found, ["ticker", "title", "category", "lean", "yes_depth", "no_depth", "wall", "yes_bid", "yes_ask", "vol24", "url"],
+            a.format, a.out):
+        return
+
+    print(banner("KALSHI", paint("pressure", "bold") + paint(f"  order books that lean one way, among the {len(pool)} busiest markets screened", "gray")))
+    print(paint("screen:    ", "gray") + f"24h vol >= {a.min_volume_24h:g}  |  price {a.min_price:g}-{a.max_price:g}c  |  orders within {a.within:g}c "
+          f"of the best bid  |  at least ${a.min_depth:g} resting  |  lean >= {a.min_lean:.0%}")
+    if not found:
+        print("\n" + paint("No book leans that hard right now.", "yellow", "bold") + " Lower --min-lean or --min-depth, or widen --scan.")
+        return
+    width = shutil.get_terminal_size((120, 30)).columns
+    title_w = max(22, min(60, width - 78))
+    print(paint(f"\n{'#':>3} {'LEANS':<5} {'NO < resting > YES':^14} {'LEAN':>6} {'YES BIDS':>9} {'NO BIDS':>9} {'1 ORDER':>7} {'YES b/a':<8} {'ENDS':>5}  MARKET",
+                "bold", "cyan"))
+    print(rule(min(width - 1, 76 + title_w)))
+    for i, f in enumerate(found, 1):
+        title = f["title"] if len(f["title"]) <= title_w else f["title"][:title_w - 3] + "..."
+        cut = title.rfind(" [")
+        title = paint(title, "bold") if cut <= 0 else paint(title[:cut], "bold") + paint(title[cut:], "cyan")
+        print(f"{cell(i, 3, 'gray', align='>')} {cell(f['buy_side'], 5, *side_style(f['buy_side']))} {lean_cell(f['lean'], 14)} "
+              f"{f['lean']:>+6.0%} {'$' + short_number(f['yes_depth']):>9} {'$' + short_number(f['no_depth']):>9} "
+              f"{cell(format(f['wall'], '.0%'), 7, *(('yellow',) if f['wall'] >= 0.5 else ()), align='>')} "
+              f"{price_text(f['yes_bid']) + '/' + price_text(f['yes_ask']):<8} {time_left(f['hours_left']):>5}  {title}")
+        if not a.no_links:
+            print(f"    {link(f['url'], paint(f['ticker'], 'cyan'))}  {category_tag(f['category'])}  {link(f['url'])}")
+    walls = sum(1 for f in found if f["wall"] >= 0.5)
+    plain_words([
+        f"{total} of the screened books lean at least {a.min_lean:.0%} to one side; the top {len(found)} are listed.",
+        "YES BIDS and NO BIDS are the dollars waiting to buy each side within a few cents of the best price. More dollars "
+        "bidding for YES means more people willing to pay up for YES than for NO.",
+        (f"In {walls} of these, a single order is half or more of the resting money (the 1 ORDER column, in yellow). "
+         "One order can be cancelled in a second, so weigh those less." if walls else ""),
+        "Resting orders are intentions, not trades. Run `flow N` to see whether takers are actually trading the same way.",
+    ])
+    print("\n" + paint("Next: ", "gray") + paint("flow 1", "bold") + paint("   analyze 1 --deep", "bold") + paint("   plan 1 --my-prob N", "bold"))
+
+
+# ----------------------------------------------------------------------------
+# Rewards: markets where Kalshi pays for resting orders
+# ----------------------------------------------------------------------------
+# Kalshi publishes its incentive programs. A "liquidity" program sets aside a
+# pool of money for a market each period and shares it among traders whose
+# limit orders sit near the best price. This is one of the few edges that does
+# not depend on predicting anything, but the pool is shared, the rules are
+# Kalshi's, and a resting order can still be filled at a bad moment.
+
+def cmd_rewards(a):
+    """List markets with an active incentive program, with what each pays and how the market looks now."""
+    programs, cursor = [], ""
+    while True:
+        page = api_get("/incentive_programs", {"status": a.status, "type": None if a.type == "all" else a.type,
+                                               "limit": 1000, "cursor": cursor})
+        programs += page.get("incentive_programs") or []
+        cursor = page.get("next_cursor") or ""
+        if not cursor or not page.get("incentive_programs") or len(programs) >= 20000:
+            break
+    rows = add_clock_fields(load_markets(a.cache_minutes, a.refresh))
+    by_ticker = {m["ticker"]: m for m in rows}
+    wanted = {CATEGORIES[c].lower() for c in (a.category or [])}
+    words = [w.lower() for w in (a.search or [])]
+    found, unknown = [], 0
+    for p in programs:
+        m = by_ticker.get(p.get("market_ticker"))
+        if not m:
+            unknown += 1                                     # the market is not open any more, or opened after the saved list
+            continue
+        if wanted and m["category"].lower() not in wanted:
+            continue
+        if words and not all(w in f"{m['title']} {m['ticker']}".lower() for w in words):
+            continue
+        reward = (p.get("period_reward") or 0) / 10000.0     # the API gives hundredths of a cent
+        if reward < a.min_reward:
+            continue
+        ends = parse_time(p.get("end_date") or "")
+        starts = parse_time(p.get("start_date") or "")
+        hours = (ends - starts).total_seconds() / 3600 if ends and starts else None
+        found.append({**m, "reward": reward, "kind": p.get("incentive_type", ""), "why": p.get("incentive_description", ""),
+                      "target": num(p.get("target_size_fp")), "discount": (p.get("discount_factor_bps") or 0) / 100.0,
+                      "period_hours": hours,
+                      "ends_in": (ends - dt.datetime.now(dt.timezone.utc)).total_seconds() / 3600 if ends else None,
+                      "per_volume": reward / (m["vol24"] + 100.0), "buy_side": "", "buy_price": None})
+    order = {"reward": lambda f: (-f["reward"], f["spread"] if f["spread"] is not None else 99),
+             "quiet": lambda f: -f["per_volume"],             # most reward for the least competition for it
+             "spread": lambda f: (-(f["spread"] or 0), -f["reward"])}[a.by]
+    found.sort(key=order)
+    total = len(found)
+    pool_total = sum(f["reward"] for f in found)
+    found = found[: a.top]
+    save_last(found)
+    if emit(found, ["ticker", "title", "category", "kind", "why", "reward", "target", "discount", "period_hours", "spread",
+                    "yes_bid", "yes_ask", "vol24", "url"], a.format, a.out):
+        return
+
+    print(banner("KALSHI", paint("rewards", "bold") + paint(f"  {total:,} open markets with an incentive program ({a.status}), "
+                                                              f"${pool_total:,.0f} in pools", "gray")))
+    if not found:
+        print("\n" + paint("No program matches.", "yellow", "bold") + " Drop the filters, or try --status upcoming.")
+        return
+    width = shutil.get_terminal_size((120, 30)).columns
+    title_w = max(22, min(60, width - 74))
+    print(paint(f"\n{'#':>3} {'POOL':>8} {'PER':>5} {'TYPE':<9} {'TARGET':>7} {'SPRD':>4} {'YES b/a':<8} {'24H VOL':>8} {'LEFT':>5} {'ENDS':>5}  MARKET",
+                "bold", "cyan"))
+    print(rule(min(width - 1, 72 + title_w)))
+    for i, f in enumerate(found, 1):
+        title = f["title"] if len(f["title"]) <= title_w else f["title"][:title_w - 3] + "..."
+        cut = title.rfind(" [")
+        title = paint(title, "bold") if cut <= 0 else paint(title[:cut], "bold") + paint(title[cut:], "cyan")
+        period = "?" if not f["period_hours"] else f"{f['period_hours']:.0f}h" if f["period_hours"] < 48 else f"{f['period_hours'] / 24:.0f}d"
+        print(f"{cell(i, 3, 'gray', align='>')} {paint(('$' + format(f['reward'], ',.0f')).rjust(8), 'green', 'bold')} {period:>5} "
+              f"{f['kind'][:9]:<9} {short_number(f['target']):>7} {cell(price_text(f['spread']), 4, *(('yellow',) if (f['spread'] or 0) >= 5 else ()), align='>')} "
+              f"{price_text(f['yes_bid']) + '/' + price_text(f['yes_ask']):<8} {short_number(f['vol24']):>8} "
+              f"{time_left(f['ends_in']):>5} {time_left(f['hours_left']):>5}  {title}")
+        if not a.no_links:
+            print(f"    {link(f['url'], paint(f['ticker'], 'cyan'))}  {category_tag(f['category'])}  {link(f['url'])}")
+    plain_words([
+        f"POOL is the money Kalshi has set aside for that market for one period (PER). It is shared among everyone who "
+        f"qualifies, so your part is a fraction of it, and often a small one.",
+        "A liquidity program rewards limit orders resting near the best price, up to the TARGET size in contracts. "
+        "A volume program rewards trading. The exact rules are Kalshi's; read them before counting on a payout.",
+        "The risk is real: an order that rests is an order that can be filled just as news breaks against it. "
+        "Wide-spread, quiet markets pay the most per competitor and are also the easiest to get picked off in.",
+        (f"{unknown:,} more programs are on markets that are not in the saved list of open markets." if unknown else ""),
+        "LEFT is how long this period has to run. `--by quiet` sorts by pool size against how much trades there.",
+    ])
+    print("\n" + paint("Next: ", "gray") + paint("analyze 1 --deep", "bold") + paint("   sources 1", "bold")
+          + paint("   buy 1 --side yes --price N --count N", "bold") + paint("  (post-only by default, which is what a resting order needs)", "gray"))
+
+
+# ----------------------------------------------------------------------------
+# Sources: where the answer comes from, and what the fees are
+# ----------------------------------------------------------------------------
+
+def cmd_sources(a):
+    """For one market or series: the official settlement sources, the contract terms, the fee type, and fee changes."""
+    ref, _ = resolve(a.market)
+    series_ticker, market = ref, None
+    try:
+        series = api_get("/series/" + urllib.parse.quote(ref))["series"]
+    except urllib.error.HTTPError as err:
+        if err.code != 404:
+            raise
+        # Not a series ticker, so treat it as a market: market -> its event -> its series.
+        market = api_get("/markets/" + urllib.parse.quote(ref))["market"]
+        event = api_get("/events/" + urllib.parse.quote(market.get("event_ticker", ""))).get("event", {})
+        series_ticker = event.get("series_ticker", "")
+        series = api_get("/series/" + urllib.parse.quote(series_ticker))["series"]
+    changes = [c for c in (api_get("/series/fee_changes").get("series_fee_change_arr") or [])
+               if c.get("series_ticker") == series.get("ticker")]
+    if a.json:
+        print(json.dumps({"series": series, "fee_changes": changes}, indent=2))
+        return
+    print(banner("KALSHI", paint("sources", "bold") + paint("  where the answer comes from", "gray")))
+    print("\n" + paint(series.get("title") or series_ticker, "bold", "white")
+          + paint(f"   series {series.get('ticker')}", "cyan") + "  " + category_tag(series.get("category")))
+    if market:
+        print(paint("for market: ", "gray") + (market.get("title") or ref) + paint(f"  {ref}", "cyan"))
+    print(paint("\n  SETTLED FROM", "bold", "cyan"))
+    for s in series.get("settlement_sources") or []:
+        print(f"  {paint(s.get('name') or '?', 'bold')}\n    {link(s.get('url') or '')}")
+    if not series.get("settlement_sources"):
+        print(paint("  No source is listed for this series.", "yellow"))
+    print(paint("\n  THE FINE PRINT", "bold", "cyan"))
+    if series.get("contract_terms_url"):
+        print(f"  contract terms   {link(series['contract_terms_url'])}")
+    if series.get("contract_url"):
+        print(f"  certification    {link(series['contract_url'])}")
+    if market and market.get("rules_primary"):
+        print("  " + paint("rule: ", "gray") + market["rules_primary"][:400])
+    print(paint("\n  FEES AND SCHEDULE", "bold", "cyan"))
+    fee_type = series.get("fee_type") or "?"
+    multiplier = series.get("fee_multiplier")
+    explain = {"quadratic": "takers pay 7% x price x (1 - price); resting orders are free",
+               "quadratic_with_maker_fees": "takers pay 7% x price x (1 - price); resting orders ALSO pay a smaller fee when filled",
+               "flat": "a flat fee per contract"}.get(fee_type, "see the contract terms")
+    print(f"  fee type         {paint(fee_type, 'bold')}  {paint('(' + explain + ')', 'gray')}")
+    if multiplier is not None:
+        note = "the standard rate" if multiplier == 1 else "cheaper than standard" if multiplier < 1 else "more expensive than standard"
+        print(f"  fee multiplier   {paint(format(multiplier, 'g') + 'x', 'bold', *(('green',) if multiplier < 1 else ('red',) if multiplier > 1 else ()))}  "
+              + paint(f"({note})", "gray"))
+    print(f"  how often        {series.get('frequency') or '?'}")
+    if series.get("tags"):
+        print(f"  tags             {', '.join(series['tags'])}")
+    for c in changes:
+        print(f"  {paint('fee change', 'yellow', 'bold')}       {c.get('scheduled_ts', '')[:16].replace('T', ' ')} UTC: {c.get('fee_type')} x{c.get('fee_multiplier')}")
+    if series.get("additional_prohibitions"):
+        print(paint("\n  WHO MAY NOT TRADE IT", "bold", "cyan"))
+        for line in series["additional_prohibitions"]:
+            print("  - " + line)
+    plain_words([
+        "The settlement source is the only thing that decides the outcome. Read it yourself before trading; "
+        "an edge usually starts with knowing the source better than the crowd does.",
+        ("This series charges resting orders a fee too, so a limit order is not free here." if "maker" in fee_type else ""),
+        "Kalshi's rules page and the contract terms settle any dispute. If the rule and the title seem to differ, the rule wins.",
+    ])
+    print("\n" + paint("Next: ", "gray") + paint(f"search --series {series.get('ticker')}", "bold")
+          + paint("   every open market in this series", "gray"))
+
+
+def cmd_status(a):
+    """Is the exchange open, and when is it scheduled to be closed?"""
+    status = api_get("/exchange/status")
+    schedule = (api_get("/exchange/schedule").get("schedule") or {})
+    def flag(ok):
+        return paint("open", "green", "bold") if ok else paint("CLOSED", "red", "bold")
+    print(banner("KALSHI", paint("exchange status", "bold")) + "\n")
+    print(f"  exchange  {flag(status.get('exchange_active'))}     trading  {flag(status.get('trading_active'))}")
+    if status.get("exchange_estimated_resume_time"):
+        print(f"  expected back: {status['exchange_estimated_resume_time']}")
+    today = dt.datetime.now(dt.timezone.utc).strftime("%A").lower()
+    for block in schedule.get("standard_hours") or []:
+        hours = block.get(today) or []
+        if hours:
+            spans = ", ".join(f"{h.get('open_time')} to {h.get('close_time')}" for h in hours)
+            print(f"  today ({today}), US Eastern time: {spans}" + paint("   (00:00 to 00:00 means all day)", "gray"))
+            break
+    windows = schedule.get("maintenance_windows") or []
+    if windows:
+        print(paint("\n  PLANNED MAINTENANCE", "bold", "cyan"))
+        for w in windows:
+            print(f"  {w.get('start_datetime', '?')}  to  {w.get('end_datetime', '?')}")
+    else:
+        print(paint("  No maintenance window is scheduled.", "gray"))
+
+
+# ----------------------------------------------------------------------------
+# Chain: several commands in one go
+# ----------------------------------------------------------------------------
+
+def split_chain(pieces):
+    """['best 3 ; analyze 1', 'plan 1 --my-prob 70'] -> [['best','3'], ['analyze','1'], ['plan','1','--my-prob','70']]"""
+    steps = []
+    for piece in pieces:
+        for part in re.split(r"\s*(?:;|&&|\bthen\b)\s*", piece):
+            part = part.strip()
+            if not part:
+                continue
+            argv = shlex.split(part)
+            while argv and (argv[0].lower() in ("python", "python3", "py") or argv[0].lower().endswith("kalshi_cli.py")):
+                argv = argv[1:]                          # allow a pasted "python kalshi_cli.py ..." line
+            if argv:
+                steps.append(argv)
+    return steps
+
+
+def cmd_chain(a):
+    """Run several commands one after another. Row numbers carry over, so `best 3 ; analyze 1 ; plan 1 --my-prob 70` works."""
+    steps = split_chain(a.commands)
+    if not steps:
+        sys.exit('Give the commands in quotes, e.g.  chain "best 3" "analyze 1" "plan 1 --my-prob 70"   or one string with ; between them.')
+    if any(s[0] in ("chain", "serve", "firehose", "selftest") for s in steps):
+        sys.exit("chain, serve and firehose cannot be steps in a chain.")
+    width = min(shutil.get_terminal_size((120, 30)).columns - 1, 110)
+    failed = 0
+    for i, argv in enumerate(steps, 1):
+        print("\n" + paint(f" {i} of {len(steps)} ", "bold", "cyan", "inv") + " " + paint("python kalshi_cli.py " + " ".join(argv), "bold"))
+        print(rule(width))
+        try:
+            dispatch(argv, inherit=a)
+        except SystemExit as stop:                       # a step that exits (bad option, nothing found) does not kill the chain
+            if stop.code not in (0, None):
+                failed += 1
+                if isinstance(stop.code, str):
+                    print(stop.code)
+                if not a.keep_going:
+                    print(paint(f"\nStopped at step {i}. Add --keep-going to run the rest anyway.", "yellow"))
+                    sys.exit(1)
+    print("\n" + paint(f"Chain finished: {len(steps) - failed} of {len(steps)} steps ran.", "green" if not failed else "yellow", "bold"))
+
+
+# ----------------------------------------------------------------------------
+# Selftest: does everything still work on this computer?
+# ----------------------------------------------------------------------------
+# Two kinds of check. The arithmetic checks need no network. The command checks
+# run real commands against live Kalshi data and pass when the command finishes
+# cleanly. Nothing here places, cancels or changes an order: `buy` is run as a
+# dry run only, and the account commands are skipped.
+
+SELFTEST_COMMANDS = [
+    "status", "categories", "tags economics", "examples --search multiply",
+    "top --category economics --top 3", "top --all --under 10 --top 3 --no-links",
+    "search fed --limit 3", "search fed --count", "search fed rate --group", "search fed rate --any --limit 2 --format json",
+    "show 1", "analyze 1", "sources 1", "flow 1 --hours 24", "flow --top 5 --no-links", "flow --search fed --markets 3 --hours 24",
+    "pressure --top 3 --scan 100", "rewards --top 3", "anomalies --top 2", "best 3", "picks --top 3 --seed 7",
+    "grind --start 10 --target 20 --no-links", "multiply 3x --stake 20 --no-links", "multiply 5x --stake 10 --route single --format csv",
+    "ladder 1", "plan 1 --my-prob 60 --bankroll 500", "fee --price 55 --contracts 100", "buy 1 --take",
+    'chain "search fed --limit 2 --no-links" "show 1" "status"', "banner",
+]
+
+
+def cmd_selftest(a):
+    """Check the arithmetic, then run a set of real commands and report which passed."""
+    print(banner("KALSHI", paint("selftest", "bold") + paint("  arithmetic first, then real commands on live data. No order is sent.", "gray")) + "\n")
+    passed, failed = 0, []
+
+    def check(name, ok, detail=""):
+        nonlocal passed
+        if ok:
+            passed += 1
+        else:
+            failed.append(name)
+        print(f"  {paint('pass', 'green') if ok else paint('FAIL', 'red', 'bold')}  {name}" + (paint("  " + detail, "gray") if detail else ""))
+
+    # ---- arithmetic: no network needed ----
+    print(paint("  ARITHMETIC", "bold", "cyan"))
+    check("taker fee at 50c is 1.75c", abs(taker_fee_cents(50) - 1.75) < 1e-9)
+    check("taker fee at 10c is 0.63c", abs(taker_fee_cents(10) - 0.63) < 1e-9)
+    check("estimate leaves 50c alone", abs(estimated_probability(50) - 50) < 0.6)
+    check("estimate marks longshots down", estimated_probability(5) < 5)
+    check("estimate with bias 0 is the price", estimated_probability(30, 0) == 30)
+    check("Kelly: 60% at 50c is 20% of bankroll", abs(kelly_fraction(0.60, 0.50) - 0.20) < 1e-9)
+    check("Kelly: no edge means no bet", kelly_fraction(0.50, 0.50) <= 0)
+    check("multiple '5x' reads as 5", parse_multiple("5x") == 5.0 and parse_multiple("10X") == 10.0)
+    check("chain splits on ; and 'then'", split_chain(["best 3 ; analyze 1 then plan 1 --my-prob 70"])
+          == [["best", "3"], ["analyze", "1"], ["plan", "1", "--my-prob", "70"]])
+    check("--since noon is 12:00 today", dt.datetime.fromtimestamp(parse_since("noon")).strftime("%H:%M") == "12:00")
+    check("--since 2h is two hours back", abs(time.time() - parse_since("2h") - 7200) < 5)
+    check("tape summary leans to the buyer", tape_summary([{"count": 30.0, "side": "yes", "price": 60, "dollars": 18.0, "when": None},
+                                                            {"count": 10.0, "side": "no", "price": 60, "dollars": 4.0, "when": None}])["lean"] == 0.5)
+    check("a link is plain text when links are off", (LINKS_ON or link("https://kalshi.com") == paint("https://kalshi.com", "blue", "ul")))
+    if a.offline:
+        print()
+    else:
+        # ---- real commands, on live data ----
+        print("\n" + paint("  COMMANDS", "bold", "cyan") + paint("  (the first one may take 1 to 2 minutes while the market list downloads)", "gray"))
+        commands = SELFTEST_COMMANDS[:10] if a.quick else SELFTEST_COMMANDS
+        for command in commands:
+            started = time.time()
+            text, code = run_capture(shlex.split(command), 130)
+            plain = ANSI_RE.sub("", text)
+            ok = code == 0 and "Traceback" not in plain
+            last = plain.strip().split("\n")[-1][:90] if plain.strip() else "(no output)"
+            check(command, ok, f"{time.time() - started:.0f}s" + ("" if ok else f"   exit {code}: {last}"))
+    total = passed + len(failed)
+    print("\n  " + (paint(f"All {total} checks passed.", "green", "bold") if not failed
+                    else paint(f"{len(failed)} of {total} checks failed: ", "red", "bold") + "; ".join(failed)))
+    print(paint("  Not covered here: sending real orders, and the account commands (orders, positions, log fills), which need your API key.", "gray"))
+    if failed:
+        sys.exit(1)
+
+
+# ----------------------------------------------------------------------------
 # Command line
 # ----------------------------------------------------------------------------
 
@@ -4378,6 +5420,9 @@ def build_parser():
                    help="use Kalshi's practice exchange (demo.kalshi.co) with practice money; needs a demo API key")
     p.add_argument("--refresh", action="store_true", help="re-download the market list instead of using the saved copy")
     p.add_argument("--cache-minutes", type=float, default=30, help="how long a saved market list stays good (default 30)")
+    p.add_argument("--links", choices=["auto", "always", "never"], default="auto",
+                   help="clickable links in the terminal: auto (default, on in a terminal), always, or never")
+    p.add_argument("--no-banner", action="store_true", help="skip the first-run banner")
     sub = p.add_subparsers(dest="command", required=True)
 
     sub.add_parser("categories", help="list categories with open-market counts").set_defaults(func=cmd_categories)
@@ -4395,7 +5440,8 @@ def build_parser():
     g.add_argument("--skip-category", nargs="+", choices=sorted(CATEGORIES), metavar="NAME",
                    help="leave these categories out, e.g. --skip-category sports crypto")
     g.add_argument("--all", action="store_true", help="every category (this is the default when --category is not given)")
-    g.add_argument("--search", "-s", nargs="+", metavar="WORD", help="keywords; a market must contain all of them")
+    g.add_argument("--search", "-s", nargs="+", metavar="WORD",
+                   help="keywords; a market must contain all of them (for every match with no cut, use the `search` command)")
     g.add_argument("--any-word", action="store_true", help="with --search: match any keyword instead of all")
     g.add_argument("--exclude", "-x", nargs="+", metavar="WORD", help="drop markets containing any of these words")
     g.add_argument("--series", nargs="+", metavar="TICKER", help="only these series tickers, e.g. KXFED")
@@ -4630,6 +5676,110 @@ def build_parser():
     e.add_argument("--no-links", action="store_true", help="hide the ticker/link line")
     e.set_defaults(func=cmd_grind)
 
+    formats = dict(choices=["table", "json", "csv", "markdown"], default="table")
+    e = sub.add_parser("search", aliases=["find"], help="EVERY open market matching your keywords, in all categories, with no top-N cut",
+                       description="Returns every match by default. Words are matched against the question, the outcome label, the "
+                                   "event title, the ticker, the series and the category. All words must match unless --any is given.")
+    e.add_argument("words", nargs="*", metavar="WORD", help="keywords, e.g.  bears packers   or   fed rate")
+    e.add_argument("--any", dest="any_word", action="store_true", help="match ANY of the words instead of all of them")
+    e.add_argument("--phrase", action="store_true", help="the words must appear together, in that order")
+    e.add_argument("--not", dest="exclude", nargs="+", metavar="WORD", help="leave out markets containing any of these words")
+    e.add_argument("--regex", metavar="PATTERN", help="a regular expression to match, instead of or as well as the words")
+    e.add_argument("--in", dest="inside", nargs="+", choices=sorted(SEARCH_FIELDS), metavar="FIELD",
+                   help="only look in these fields: " + ", ".join(sorted(SEARCH_FIELDS)) + " (default: all of them)")
+    e.add_argument("--tag", nargs="+", metavar="TAG", help="only series carrying this Kalshi tag, e.g. --tag Fed (see `tags`)")
+    e.add_argument("--series", nargs="+", metavar="TICKER", help="only these series, e.g. --series KXNFLGAME")
+    e.add_argument("--category", "-c", nargs="+", choices=sorted(CATEGORIES), metavar="NAME", help="only these categories")
+    e.add_argument("--skip-category", nargs="+", choices=sorted(CATEGORIES), metavar="NAME", help="leave these categories out")
+    e.add_argument("--under", type=float, metavar="CENTS", help="only markets with a side you can buy at this price or less")
+    e.add_argument("--over", type=float, metavar="CENTS", help="only markets with a side you can buy at this price or more")
+    e.add_argument("--closes-within", type=float, metavar="DAYS", help="only markets closing within N days")
+    e.add_argument("--min-volume-24h", type=float, default=0, metavar="N", help="at least N contracts traded in 24h (default 0)")
+    e.add_argument("--sort", choices=sorted(SORTS), default="volume", metavar="HOW", help="order: " + ", ".join(sorted(SORTS)) + " (default volume)")
+    e.add_argument("--limit", "-n", type=int, default=0, metavar="N", help="stop after N results (default 0 = no limit, show all)")
+    e.add_argument("--group", action="store_true", help="list the matching EVENTS with a market count, instead of every market")
+    e.add_argument("--count", action="store_true", help="print only how many markets and events match")
+    e.add_argument("--tickers", action="store_true", help="print only the tickers, one per line")
+    e.add_argument("--no-links", action="store_true", help="hide the ticker/link line under each row")
+    e.add_argument("--format", "-f", **formats)
+    e.add_argument("--out", "-o", metavar="FILE", help="with --format json/csv/markdown: write to this file")
+    e.set_defaults(func=cmd_search)
+
+    e = sub.add_parser("tags", help="the tags Kalshi files its markets under, for use with search --tag")
+    e.add_argument("category", nargs="?", help="only categories containing this word")
+    e.set_defaults(func=cmd_tags)
+
+    e = sub.add_parser("flow", aliases=["tape"], help="the trade tape: who is buying, how hard, and the biggest trades",
+                       description="With a ticker: that market's trades in detail. With --search: every matching market, side by side. "
+                                   "With neither: the busiest markets on the whole exchange right now.")
+    e.add_argument("market", nargs="?", help="ticker, or a row number from the last list (omit for many markets)")
+    e.add_argument("--search", "-s", nargs="+", metavar="WORD", help="read the tape for every market matching these words")
+    e.add_argument("--since", metavar="WHEN", help="start time, in your local time: 12:00, 12pm, noon, 2h (two hours ago), or 2026-10-11 12:00")
+    e.add_argument("--hours", type=float, metavar="N", help="the last N hours (instead of --since)")
+    e.add_argument("--trades", type=int, default=2000, metavar="N", help="most trades to download per market (default 2000)")
+    e.add_argument("--markets", type=int, default=25, metavar="N", help="with --search: how many matching markets to read, busiest first (default 25)")
+    e.add_argument("--by", choices=["volume", "lean", "dollars", "big"], default="volume",
+                   help="order for several markets: volume (default), lean = most one-sided, dollars, big = largest single trade")
+    e.add_argument("--min-contracts", type=float, default=0, metavar="N", help="hide markets with fewer contracts traded than this")
+    e.add_argument("--category", "-c", nargs="+", choices=sorted(CATEGORIES), metavar="NAME", help="exchange-wide view: only these categories")
+    e.add_argument("--buckets", type=int, default=8, metavar="N", help="one market: how many time slices to cut the window into (default 8)")
+    e.add_argument("--top", "-n", type=int, default=8, metavar="N", help="largest trades to list for one market; rows for the exchange view")
+    e.add_argument("--no-links", action="store_true", help="hide the ticker/link line")
+    e.add_argument("--format", "-f", **formats)
+    e.add_argument("--out", "-o", metavar="FILE", help="with --format json/csv/markdown: write to this file")
+    e.set_defaults(func=cmd_flow)
+
+    e = sub.add_parser("pressure", help="order books that lean hard to one side, among the busiest markets")
+    e.add_argument("--search", "-s", nargs="+", metavar="WORD", help="only markets matching these words")
+    e.add_argument("--category", "-c", nargs="+", choices=sorted(CATEGORIES), metavar="NAME", help="only these categories")
+    e.add_argument("--skip-category", nargs="*", choices=sorted(CATEGORIES), metavar="NAME",
+                   help="leave these out (default: sports crypto; pass with no names to include everything)")
+    e.add_argument("--scan", type=int, default=200, metavar="N", help="how many of the busiest markets to check (default 200)")
+    e.add_argument("--within", type=float, default=3, metavar="CENTS", help="count orders within this many cents of the best bid (default 3)")
+    e.add_argument("--min-lean", type=float, default=0.5, metavar="X", help="smallest lean worth listing, 0 to 1 (default 0.5)")
+    e.add_argument("--min-depth", type=float, default=500, metavar="USD", help="ignore books with less than this resting near the top (default 500)")
+    e.add_argument("--min-volume-24h", type=float, default=1000, metavar="N", help="at least N contracts traded in 24h (default 1000)")
+    e.add_argument("--min-price", type=float, default=8, metavar="CENTS", help="lowest YES midpoint to consider (default 8)")
+    e.add_argument("--max-price", type=float, default=92, metavar="CENTS", help="highest YES midpoint to consider (default 92)")
+    e.add_argument("--top", "-n", type=int, default=15, metavar="N", help="how many to list (default 15)")
+    e.add_argument("--no-links", action="store_true", help="hide the ticker/link line")
+    e.add_argument("--format", "-f", **formats)
+    e.add_argument("--out", "-o", metavar="FILE")
+    e.set_defaults(func=cmd_pressure)
+
+    e = sub.add_parser("rewards", aliases=["incentives"], help="markets where Kalshi pays traders for resting orders or volume")
+    e.add_argument("--status", choices=["active", "upcoming", "closed", "all"], default="active", help="which programs (default active)")
+    e.add_argument("--type", choices=["all", "liquidity", "volume"], default="all", help="liquidity = resting orders, volume = trading")
+    e.add_argument("--by", choices=["reward", "quiet", "spread"], default="reward",
+                   help="order: reward = biggest pool (default), quiet = most pool for the least trading, spread = widest spread")
+    e.add_argument("--min-reward", type=float, default=0, metavar="USD", help="only pools of at least this many dollars per period")
+    e.add_argument("--search", "-s", nargs="+", metavar="WORD", help="only markets matching these words")
+    e.add_argument("--category", "-c", nargs="+", choices=sorted(CATEGORIES), metavar="NAME", help="only these categories")
+    e.add_argument("--top", "-n", type=int, default=20, metavar="N", help="how many to list (default 20)")
+    e.add_argument("--no-links", action="store_true", help="hide the ticker/link line")
+    e.add_argument("--format", "-f", **formats)
+    e.add_argument("--out", "-o", metavar="FILE")
+    e.set_defaults(func=cmd_rewards)
+
+    e = sub.add_parser("sources", help="where a market's answer comes from: settlement sources, contract terms, fee type")
+    e.add_argument("market", help="market ticker, series ticker, or a row number from the last list")
+    e.add_argument("--json", action="store_true", help="print the raw series record as JSON")
+    e.set_defaults(func=cmd_sources)
+
+    sub.add_parser("status", help="is the exchange open, and is maintenance scheduled").set_defaults(func=cmd_status)
+    sub.add_parser("banner", help="show the banner and where to start").set_defaults(func=cmd_banner)
+
+    e = sub.add_parser("selftest", help="check the arithmetic and run a set of real commands; reports pass or fail for each")
+    e.add_argument("--quick", action="store_true", help="run the first ten commands only")
+    e.add_argument("--offline", action="store_true", help="arithmetic checks only, no network")
+    e.set_defaults(func=cmd_selftest)
+
+    e = sub.add_parser("chain", help="run several commands in a row; row numbers carry from one to the next",
+                       description='Example:  chain "search fed rate" "analyze 1" "flow 1"     or     chain "best 3 ; plan 1 --my-prob 70"')
+    e.add_argument("commands", nargs="+", metavar="COMMAND", help="each command in quotes, or one string with ; between commands")
+    e.add_argument("--keep-going", action="store_true", help="carry on with the remaining steps when one fails")
+    e.set_defaults(func=cmd_chain)
+
     e = sub.add_parser("multiply", aliases=["x"], help="turn a stake into 2x / 3x / 5x / 10x inside a week: one bet or several",
                        description="Say what you want to put down and the multiple you want back. Lays out a single bet, a chain "
                                    "of bets in a row, and a spread of bets placed together, with the real odds of each and the "
@@ -4672,6 +5822,9 @@ def build_parser():
     e.add_argument("--port", type=int, default=8765)
     e.add_argument("--allow-live", action="store_true", help="let the dashboard send real orders (each still needs a typed confirmation)")
     e.add_argument("--no-browser", action="store_true", help="do not open a browser tab automatically")
+    e.add_argument("--browser", "-b", default=os.environ.get("KALSHI_BROWSER", "chrome"), metavar="NAME",
+                   help="which browser to open: chrome (default), edge, firefox, brave, default (the computer's own choice), "
+                        "or the full path of a browser program. Also settable as KALSHI_BROWSER")
     e.set_defaults(func=cmd_serve)
 
     e = sub.add_parser("firehose", help="run EVERY command and bind the output into one color PDF",
@@ -4749,8 +5902,19 @@ def main(argv=None):
             stream.reconfigure(errors="replace")
         except (AttributeError, ValueError):
             pass
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:                                       # run with nothing after the file name: show the banner and where to start
+        setup_color("auto")
+        setup_links("auto")
+        cmd_banner(None)
+        return
     args = build_parser().parse_args(argv)
     setup_color(args.color)
+    setup_links(args.links)
+    plain_output = getattr(args, "format", "table") != "table" or getattr(args, "json", False) or getattr(args, "tickers", False)
+    if not args.no_banner and args.command != "banner" and not plain_output:
+        first_run_banner()                             # once per computer, only in a real terminal
     if args.demo:
         global BASE
         BASE = DEMO_BASE

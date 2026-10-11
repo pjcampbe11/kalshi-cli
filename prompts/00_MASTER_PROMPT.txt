@@ -149,6 +149,17 @@ Build everything the guide refers to, so nothing in it is left as homework.
        - an event's prices as a probability distribution
 
      FIND AN EDGE, WITH MATH
+       - search: every open market matching my keywords, with no top-N
+         cut. Options for any-word, exact phrase, excluded words, a
+         pattern, which fields to look in, Kalshi's own tags, price and
+         time filters, grouped by event, count only, tickers only.
+       - flow: read the public trade tape for one market, for every
+         market matching a search, or for the whole exchange. Show which
+         side takers bought, the average price, time slices and the
+         largest trades. Accept a local start time such as 12:00.
+       - pressure: order books that lean hard to one side
+       - rewards: markets with a Kalshi incentive program, pool and period
+       - sources: settlement source, contract terms and fee type
        - anomalies: outcome sets whose bids add past $1, threshold ladders
          priced out of order, moves measured against the market's own
          normal day (z-score), volume surges, quotes far from the last
@@ -191,7 +202,11 @@ Build everything the guide refers to, so nothing in it is left as homework.
        - serve: the same tool as a local web dashboard. It must run the
          same commands and show the same output, so the two never
          disagree. Localhost only, token-protected, live orders off
-         unless I start it with a flag.
+         unless I start it with a flag. Let me chain commands with ;
+         and build a chain by clicking. Every link opens in a new tab.
+         Open in Chrome by default, with an option for other browsers.
+       - chain: run several commands in a row from the terminal
+       - selftest: check the arithmetic and run real commands, pass/fail
        - examples: at least 50 example commands with explanations, also
          written to a document
        - firehose: one command that runs every other command and binds
@@ -200,6 +215,8 @@ Build everything the guide refers to, so nothing in it is left as homework.
 
      EVERYWHERE
        - color and a clean layout in the terminal, off when piped
+       - market addresses and tickers are clickable links in the terminal
+       - the tool's name in large colored letters on the first run
        - a few plain sentences under each output saying what the numbers
          mean, and the next command to run
        - json, csv and markdown output where it makes sense

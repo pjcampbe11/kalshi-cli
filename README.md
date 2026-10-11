@@ -13,7 +13,7 @@ It does not predict outcomes and it is not financial advice. Research on Kalshi 
 No coding needed. Two PDFs you can open right now:
 
 - **[The strategy guide](guide/Kalshi_Strategy_Roadmap.pdf)** (8 pages). How Kalshi works, what it realistically takes to reach $1,000 to $25,000 in profit, what to trade, what to avoid, and how to size your bets. There is also a [10-minute audio version](guide/Kalshi_Strategy_Roadmap_Audio.mp3).
-- **[A sample "firehose" report](docs/firehose_sample.pdf)** (61 pages). This is what the tool produces when one command runs everything it can do: the busiest markets, the biggest movers, prices that don't add up, top picks, and one market taken all the way down to its order book. It is a snapshot of live data from October 10, 2026.
+- **[A sample "firehose" report](docs/firehose_sample.pdf)** (74 pages). This is what the tool produces when one command runs everything it can do: the busiest markets, the biggest movers, prices that don't add up, top picks, and one market taken all the way down to its order book. It is a snapshot of live data from October 11, 2026.
 
 GitHub previews both in the browser. Click the download button on the PDF's page to get the clickable table of contents and full-quality color.
 
@@ -27,12 +27,15 @@ One Python file, standard library only. Trading is the one part that needs an ex
 git clone https://github.com/pjcampbe11/kalshi-toolkit.git
 cd kalshi-toolkit
 python -m pip install -r requirements.txt      # only needed for trading
-python kalshi_cli.py examples                  # about 90 example commands, explained
+python kalshi_cli.py examples                  # about 120 example commands, explained
+python kalshi_cli.py search bears packers      # every open market matching those words
+python kalshi_cli.py flow                      # what is trading now, and which way the money leans
 python kalshi_cli.py best 3                    # the three top-scoring markets
 python kalshi_cli.py multiply 5x --stake 20    # ways to turn $20 into $100 within 3 days
 python kalshi_cli.py multiply --sweep          # 16 multiply variations into one text file
 python kalshi_cli.py firehose --open           # everything, as one color PDF
-python kalshi_cli.py serve                     # dashboard at http://127.0.0.1:8765
+python kalshi_cli.py serve                     # dashboard at http://127.0.0.1:8765, opens in Chrome
+python kalshi_cli.py selftest                  # check that everything works here
 ```
 
 - **Needs:** Python 3.9 or newer. Works on Windows, macOS and Linux.
@@ -83,7 +86,10 @@ The demo runs every command in the terminal and then the dashboard. The trading 
 
 - Download every open Kalshi market (about 140,000) and screen them any way you like.
 - Show one market in depth: prices, fees, break-even, rules, order book, price history, statistics.
+- Search every open market by keyword, phrase, pattern or Kalshi's own tags, and return all of it.
 - Find prices that break arithmetic, and prices that break their own pattern.
+- Read the trade tape and the order books: which side takers are buying, where resting money leans, the largest trades.
+- List the markets where Kalshi pays traders for resting orders, and show where each market's answer officially comes from.
 - Rank markets, build diversified baskets, and simulate what a basket or a compounding chain could do.
 - Take a stake and a target multiple (2x, 3x, 5x, 10x) and lay out a single bet, a chain of bets and a spread of bets that could reach it within a week, with the odds of each.
 - Turn your own probability into an edge, a Kelly-based size, a checklist verdict and a ready order.
@@ -149,7 +155,7 @@ python -m venv .venv; .\.venv\Scripts\Activate.ps1; python -m pip install --upgr
 Finding, analyzing, planning and logging need only Python.
 
 ```powershell
-python kalshi_cli.py examples          # about 90 example commands with explanations
+python kalshi_cli.py examples          # about 120 example commands with explanations
 python kalshi_cli.py categories        # what is open
 python kalshi_cli.py best 3            # the three top-scoring markets
 python kalshi_cli.py multiply 5x --stake 20   # ways to turn $20 into $100 within 3 days
@@ -209,6 +215,8 @@ These go **before** the command: `python kalshi_cli.py --refresh top ...`
 | `--refresh` | Download the market list again instead of using the saved copy |
 | `--cache-minutes N` | How long a saved market list stays good (default 30) |
 | `--color auto/always/never` | Colored output. `auto` is on in a terminal and off when piped |
+| `--links auto/always/never` | Clickable links in the terminal. `auto` is on in a terminal and off when piped. Use `never` if your terminal shows stray characters |
+| `--no-banner` | Skip the banner that shows the first time the tool runs on a computer |
 | `--demo` | Use Kalshi's practice exchange with practice money. Needs a demo API key |
 
 ### Find markets
@@ -292,7 +300,79 @@ An event's prices as a probability distribution. For a threshold ladder ("above 
 
 `watch` re-checks markets every `--every SECONDS` (default 60) and prints a line when a price moves; `--count N` stops after N checks. `open` opens the kalshi.com page in your browser.
 
+#### `search WORD...` (also `find`)
+
+Every open market matching your keywords, in every category including sports and crypto, with **no top-N cut**. It first shows how the matches group into events, then lists every market.
+
+```powershell
+python kalshi_cli.py search bears packers                  # every market matching both words
+python kalshi_cli.py search bears packers --group          # the matching events, with a market count each
+python kalshi_cli.py search fed rate --any --limit 20      # either word, first 20
+python kalshi_cli.py search rate cut --phrase --not september
+python kalshi_cli.py search --tag Fed --closes-within 30   # Kalshi's own tag
+python kalshi_cli.py search weather --format csv --out weather_all.csv
+```
+
+| Option | What it does |
+|---|---|
+| `WORD...` | Keywords. All must match unless `--any` is given |
+| `--any` | Match any of the words |
+| `--phrase` | The words must appear together, in that order |
+| `--not WORD...` | Leave out markets containing any of these |
+| `--regex PATTERN` | A regular expression, instead of or as well as words |
+| `--in FIELD...` | Look only in `title`, `event`, `ticker`, `series` or `category` (default: all) |
+| `--tag TAG...` | Only series carrying this Kalshi tag (see `tags`) |
+| `--series TICKER...` | Only these series |
+| `--category`, `--skip-category` | Keep or drop categories |
+| `--under CENTS`, `--over CENTS` | Only markets with a side you can buy inside that price |
+| `--closes-within DAYS`, `--min-volume-24h N` | Time and activity filters |
+| `--sort HOW` | Same orders as `top` (default `volume`) |
+| `--limit N` | Stop after N (default 0 = show all) |
+| `--group` | List matching events instead of every market |
+| `--count` | Print only how many markets and events match |
+| `--tickers` | Print only tickers, one per line |
+| `--format`, `--out`, `--no-links` | As on `top` |
+
+`top --search WORD --top 0` also lists everything; `--top 0` means no cut.
+
+#### `tags`, `sources TICKER`, `status`
+
+- `tags [CATEGORY]`: the tags Kalshi files its markets under ("Fed", "Daily temperature", "BTC"), for use with `search --tag`.
+- `sources TICKER_OR_SERIES`: where the answer comes from. Prints the official settlement source with its link, the contract terms, the fee type and multiplier, scheduled fee changes, and who is not allowed to trade it. `--json` gives the raw record.
+- `status`: whether the exchange is open and whether maintenance is scheduled.
+
 ### Find an edge
+
+#### `flow [TICKER]` (also `tape`)
+
+Reads the public trade tape. Every trade records which side was the taker, the trader who crossed the spread to get filled at once. A tape where takers keep buying one side is a clue the resting quotes do not show.
+
+```powershell
+python kalshi_cli.py flow                                          # the whole exchange, last 2,000 trades
+python kalshi_cli.py flow KXFEDDECISION-26OCT-H0 --hours 24        # one market in detail
+python kalshi_cli.py flow --search bears packers --since 12:00     # every matching market since noon, local time
+python kalshi_cli.py flow --search CHIGB --since noon --markets 60 --by lean
+```
+
+- **One market:** trades, contracts, dollars, taker YES against taker NO, the average price paid, the window cut into time slices, and the largest single trades.
+- **`--search WORD...`:** the same totals for every matching market, side by side, busiest first (`--markets N`, default 25).
+- **No ticker, no search:** the busiest markets on the exchange right now.
+
+Options: `--since WHEN` (`12:00`, `12pm`, `noon`, `2h`, `90m`, or `2026-10-11 12:00`, all in your local time) or `--hours N`; `--trades N` per market (2000); `--by volume|lean|dollars|big`; `--min-contracts N`; `--category`; `--buckets N` (8); `--top N`; `--format`; `--out`; `--no-links`.
+
+A lean shows who was impatient, not who was right. One large account can be most of it, and the output says so when it is.
+
+#### `pressure`
+
+Reads resting orders instead of trades: among the busiest markets, which order books have far more dollars bidding for one side near the top of the book. The `1 ORDER` column turns yellow when a single order is half or more of that money, because one order can be pulled in a second.
+
+Options: `--search`, `--category`, `--skip-category`, `--scan N` markets to check (200), `--within CENTS` of the best bid (3), `--min-lean` (0.5), `--min-depth USD` (500), `--min-volume-24h` (1000), `--min-price` / `--max-price` (8 to 92), `--top` (15), `--format`, `--out`.
+
+#### `rewards` (also `incentives`)
+
+Lists markets where Kalshi currently runs an incentive program, with the size of the pool, its period, the target size, and how the market looks now. A liquidity program shares its pool among traders whose limit orders rest near the best price. This is one of the few edges that does not depend on predicting anything. The pool is shared, the rules are Kalshi's, and a resting order can still be filled at a bad moment.
+
+Options: `--status active|upcoming|closed|all`, `--type all|liquidity|volume`, `--by reward|quiet|spread`, `--min-reward USD`, `--search`, `--category`, `--top` (20), `--format`, `--out`.
 
 #### `anomalies`
 
@@ -432,7 +512,10 @@ The trade log is one CSV file. Its path is `--file PATH` after `log`, or the `KA
 
 - `firehose`: run every command into one color PDF. See [Firehose](#firehose-everything-in-one-pdf).
 - `examples`: every example command, grouped, with what each does. `--search WORD` filters. `--markdown` prints the list as a document.
-- `serve`: the dashboard. `--port N` (default 8765), `--allow-live`, `--no-browser`.
+- `serve`: the dashboard. `--port N` (default 8765), `--allow-live`, `--no-browser`, `--browser chrome|edge|firefox|brave|default|PATH` (Chrome unless you say otherwise; falls back to your default browser if the one named is not installed).
+- `chain "CMD" "CMD" ...`: run several commands in a row. Row numbers carry over, so `chain "search fed rate" "analyze 1" "flow 1"` works. One string with `;` between steps works too. `--keep-going` carries on after a failed step.
+- `selftest`: checks the arithmetic, then runs about 30 real commands on live data and prints pass or FAIL for each. `--quick` runs ten; `--offline` runs the arithmetic only. No order is sent.
+- `banner`: the name in large colored letters and a short list of where to start. Running the tool with nothing after it shows the same, and it appears once on the first run.
 
 ## Firehose: everything in one PDF
 
@@ -442,9 +525,9 @@ python kalshi_cli.py firehose --open
 
 That one line runs every command the tool has and binds what each printed into a single PDF that looks like the terminal: same layout, same colors, same bars. The first page is a clickable list of contents, and every command is also a bookmark in the PDF sidebar. It takes about 3 minutes, most of it the market download, and needs nothing installed.
 
-See what it produces: [docs/firehose_sample.pdf](docs/firehose_sample.pdf) (46 commands, 61 pages, from live data on October 10, 2026).
+See what it produces: [docs/firehose_sample.pdf](docs/firehose_sample.pdf) (53 commands, 74 pages, from live data on October 11, 2026).
 
-What it runs: `categories`, the top of the whole exchange, all ten presets, nine sorts, four categories, `anomalies`, `picks`, `best` three ways, `grind` twice, `multiply` three ways, then one market all the way down (`show`, both `analyze` views, `event`, `ladder`, `plan`, a dry-run `buy`, `brief`, `fee`), then your watchlist, your scorecard if a log exists, your positions and orders if a key is set, and the examples. It never sends an order.
+What it runs: `categories`, the top of the whole exchange, all ten presets, nine sorts, four categories, `search` twice, `tags`, `status`, `flow`, `pressure`, `rewards`, `anomalies`, `picks`, `best` three ways, `grind` twice, `multiply` three ways, then one market all the way down (`show`, both `analyze` views, `event`, `ladder`, `plan`, a dry-run `buy`, `brief`, `fee`), then your watchlist, your scorecard if a log exists, your positions and orders if a key is set, and the examples. It never sends an order.
 
 | Option | What it does |
 |---|---|
@@ -460,26 +543,31 @@ Put `--refresh` first for fresh prices: `python kalshi_cli.py --refresh firehose
 ## The dashboard
 
 ```powershell
-python kalshi_cli.py serve
+python kalshi_cli.py serve                    # opens in Chrome
+python kalshi_cli.py serve --browser edge     # or firefox, brave, default, or a full path
 ```
 
 ![The dashboard](docs/dashboard.png)
 
 The dashboard has no logic of its own. Each button builds a command, the server runs this same script with it, and the page shows the output with the same colors and layout as the terminal. So the two can never disagree.
 
-- **Left side:** buttons and small forms for the common commands: categories, top with filters, presets, search, best 1 / 3 / 5 / 10, picks, anomalies, grind, multiply (stake, 2x / 3x / 5x / 10x, days, single or multiple bets), and the selected market's show, analyze, ladder, brief, plan and order preview.
+- **Left side:** buttons and small forms for the common commands: categories, top with filters, presets, search (every match), flow, pressure, rewards, tags, status, best 1 / 3 / 5 / 10, picks, anomalies, grind, multiply (stake, 2x / 3x / 5x / 10x, days, single or multiple bets), and the selected market's show, analyze, ladder, brief, flow, sources, plan and order preview.
 - **Top:** a command box that takes anything you could type in the terminal. Up and down arrows recall earlier commands.
+- **Chains:** type several commands with `;` between them, for example `search fed rate ; analyze 1 ; flow 1`. They run in order inside one box, and row numbers carry from one step to the next. Tick **queue clicks into a chain** and the buttons add to the command box instead of running, so a chain can be built by clicking. **keep going on errors** runs the rest when a step fails.
+- **Recent commands** appear as chips under the box; click one to run it again. **Clear** empties the output.
+- **Links:** every address in the output is a link that opens in a new tab.
 - **Click any ticker** in the output to select it for the buttons on the left.
 
 Safety: it listens on `127.0.0.1` only, every request must carry a secret token that is baked into the page, and orders are dry runs unless you start it with `serve --allow-live`. Even then, each live order asks you to type the confirmation word.
 
 ## Output formats and color
 
-- `top`, `picks`, `best`, `anomalies` and `multiply` take `--format table`, `json`, `csv` or `markdown`, and `--out FILE`.
+- `top`, `search`, `flow`, `pressure`, `rewards`, `picks`, `best`, `anomalies` and `multiply` take `--format table`, `json`, `csv` or `markdown`, and `--out FILE`.
 - `analyze` takes `--format json`. `log stats` takes `--json`.
 - `multiply --sweep [FILE]` writes 16 variations, each command followed by its output, to a plain-text file (`multiply_results.txt` by default).
 - `firehose` writes everything to one color PDF.
 - Output is colored in a terminal and plain when piped to a file. `--color never` or `NO_COLOR=1` turns color off; `--color always` forces it on.
+- **Clickable links.** In a terminal, every market address is a real link, and the ticker beside it opens the same page. Ctrl+click in Windows Terminal and VS Code; click or Cmd+click elsewhere. Terminals without link support just show the text. `--links never` or `KALSHI_LINKS=never` turns it off. Links are never written to files or pipes.
 
 ```powershell
 python kalshi_cli.py top -c weather -n 20 --format markdown --out weather.md
@@ -513,6 +601,8 @@ A key can place orders on your account. Treat the `.pem` file like a password an
 | `KALSHI_MAX_ORDER_USD` | Per-order dollar cap (default 25) |
 | `KALSHI_HOME` | Folder for the watchlist (default `~/.kalshi_cli`) |
 | `NO_COLOR` | Set to turn color off |
+| `KALSHI_LINKS` | Set to `never` to turn clickable links off |
+| `KALSHI_BROWSER` | Browser for `serve`: `chrome` (default), `edge`, `firefox`, `brave`, `default`, or a path |
 
 ## How the math works
 
@@ -538,6 +628,10 @@ A key can place orders on your account. Treat the `.pem` file like a password an
 
 **Multiply routes.** For a multiple k, a single bet needs a contract costing at most 100 / k cents after the fee. A chain of n bets needs each to return about the n-th root of k, and its chance is the product of the bets' chances. A spread buys the same number of contracts, k x stake, in each market, so the combined price per contract must stay under 100 / k cents; its chance is 1 minus the product of each bet missing, which assumes the markets are independent.
 
+**Taker lean.** In `flow`, lean = (contracts where the taker bought YES - contracts where the taker bought NO) / all contracts. +100% means every taker bought YES. In `pressure` the same formula is applied to dollars resting within a few cents of the best bid on each side.
+
+**Reward pools.** `rewards` shows the pool Kalshi publishes for a market and period. Your share depends on how your resting size compares with everyone else's, which the public data does not show, so the tool does not estimate a payout.
+
 **Calibration.** The Brier score, the average of (forecast - outcome) squared, for your probabilities and for the market's prices on the same trades. If yours is not lower, the profit is probably luck.
 
 ## Example commands
@@ -558,6 +652,14 @@ All of them, with explanations, are in [docs/EXAMPLES.md](docs/EXAMPLES.md), or 
 | `grind --start 10 --target 40` | A compounding chain with its real odds |
 | `multiply 5x --stake 20` | Single-bet and multi-bet ways to turn $20 into $100 within 3 days |
 | `multiply 10x --stake 100 --days 7 --route multi` | Only the several-bet routes, over the full 7-day limit |
+| `search bears packers` | Every open market matching both words, no cut |
+| `flow --search bears packers --since 12:00` | Trades since noon in every matching market |
+| `flow` | What the whole exchange is trading right now, and which way takers lean |
+| `pressure` | Order books that lean hard to one side |
+| `rewards` | Markets where Kalshi pays for resting orders |
+| `sources TICKER` | The settlement source, contract terms and fee type |
+| `chain "search fed rate" "analyze 1" "flow 1"` | Several commands in a row |
+| `selftest` | Check that everything works on this computer |
 | `multiply --sweep` | 16 multiply variations, commands and output, into `multiply_results.txt` |
 | `plan TICKER --my-prob 78 --bankroll 500` | Edge, Kelly size, checklist, verdict |
 | `buy 1` | Preview the order for row 1 (dry run) |
@@ -576,6 +678,9 @@ All of them, with explanations, are in [docs/EXAMPLES.md](docs/EXAMPLES.md), or 
 - **Finding and analysis** (`categories`, `top` with every preset, filter group and format, `show`, `event`, `analyze` with each drill-down, `ladder`, `watch`): run against the live Kalshi API on October 10, 2026.
 - **Edge finders** (`anomalies`, `best`, `picks`, `grind`, `multiply`): run against live data. The anomaly checks were tightened after early runs flagged false positives, such as events where markets share a threshold type but are separate questions.
 - **Multiply:** every route, stake, multiple and window option run against live data, including the 7-day cap, the JSON and CSV output, `buy` from a row number as a dry run, and `--sweep` writing all 16 runs to a text file. Run on Linux and on the Windows machine's Linux shell; the orders it prints were only ever dry runs.
+- **Search and market reading** (`search` with every option, `tags`, `sources`, `status`, `flow` in all three modes, `pressure`, `rewards`, `chain`): run against live data on October 11, 2026, including a search and a noon-onward tape for a live NFL game. The built-in `selftest` runs 13 arithmetic checks and 30 commands; all 43 pass here.
+- **Clickable links and banner:** checked in a real pseudo-terminal (links are written) and through a pipe (they are not). Not checked by eye in Windows Terminal or the classic PowerShell window.
+- **Browser choice** (`serve --browser`): the code path that falls back to the default browser was run; opening Chrome, Edge, Firefox or Brave by name on Windows was not, since the build machine is Linux.
 - **Deciding** (`plan`, `brief`, `fee`, `watchlist`, `daily`): run against live data.
 - **Trade log** (`log init`, `add`, `settle`, `sold`, `stats`): run against live data, including settling a real resolved market. Fee math was checked against Kalshi's published example.
 - **Trading** (`buy`, `sell`, `orders`, `cancel`, `positions`): run against a stand-in server that verifies the request signature and body. The real order endpoint was confirmed to answer a bad key with a clean refusal, and dry runs were checked against live markets.

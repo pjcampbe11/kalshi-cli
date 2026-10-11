@@ -1,5 +1,25 @@
 # Changes since the last handoff
 
+## Latest: search, market reading, links, chains
+
+- `search WORD...`: every open market matching your keywords with no top-N cut. Options: `--any`, `--phrase`, `--not`,
+  `--regex`, `--in`, `--tag`, `--series`, `--under`, `--over`, `--closes-within`, `--group`, `--count`, `--tickers`,
+  `--limit`, `--sort`, `--format`. `top --top 0` also means no cut
+- `flow`: the trade tape for one market, for every market matching a search, or for the whole exchange. `--since 12:00`
+  starts at a local time of day
+- `pressure`: order books that lean hard to one side
+- `rewards`: markets with a Kalshi incentive program, with pool size and period
+- `sources`: settlement source, contract terms, fee type and fee changes for a market or series
+- `tags`, `status`: Kalshi's own tags; whether the exchange is open
+- `chain`: several commands in a row, row numbers carried over
+- `selftest`: 13 arithmetic checks and 30 real commands, pass or FAIL for each
+- Clickable links in the terminal for every market address and ticker (`--links never` turns them off)
+- A colored banner the first time the tool runs, when run with no arguments, and with `banner`
+- Dashboard: chains with `;`, a queue mode that builds a chain from button clicks, recent-command chips, Clear,
+  new buttons for search, flow, pressure, rewards, tags, status and sources; every link opens in a new tab
+- `serve --browser chrome|edge|firefox|brave|default|PATH`. Chrome is the default
+- 32 new examples (122 total), 7 more runs in `firehose`, README, master prompt and demo updated
+
 ## Latest: `multiply`
 
 - New command `multiply` (short form `x`): give a stake and a multiple, e.g. `multiply 5x --stake 20`.

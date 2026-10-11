@@ -1,6 +1,6 @@
 # Example commands
 
-90 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
+122 commands, grouped by what you are trying to do. Each is run as `python kalshi_cli.py <command>`.
 
 A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Replace `TICKER` and `ORDER_ID` with real values.
 
@@ -14,6 +14,13 @@ A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Re
 | `python kalshi_cli.py serve` | Open the dashboard at http://127.0.0.1:8765. Same commands, same output, with buttons. |
 | `python kalshi_cli.py firehose --open` | Run EVERY command and bind the output into one color PDF with clickable contents, then open it. |
 | `python kalshi_cli.py --refresh categories` | Put --refresh before any command to re-download the market list instead of using the saved copy. |
+| `python kalshi_cli.py chain "search fed rate" "analyze 1" "flow 1"` | Three commands in a row. Row numbers carry over, so 1 means the first search result. |
+| `python kalshi_cli.py chain "best 3 ; plan 1 --my-prob 70 ; buy 1" --keep-going` | One string with ; between steps. --keep-going carries on if a step fails. |
+| `python kalshi_cli.py serve --browser edge` | Open the dashboard in Edge instead of Chrome. Also: firefox, brave, default, or a full path. |
+| `python kalshi_cli.py --links never top --category economics` | Turn off clickable links for one run, for a terminal that shows stray characters. |
+| `python kalshi_cli.py selftest` | Check the arithmetic and run about 30 real commands; each line says pass or FAIL. No order is sent. |
+| `python kalshi_cli.py selftest --quick` | A shorter check: the arithmetic and the first ten commands. |
+| `python kalshi_cli.py banner` | The banner and a short list of where to start. Running the tool with nothing after it shows the same. |
 
 ## Find markets
 
@@ -34,6 +41,20 @@ A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Re
 | `python kalshi_cli.py top --category tech ai --sort interest --one-per-event` | Tech and AI ranked by open interest, one market per event. |
 | `python kalshi_cli.py top --series KXFED --sort closing` | Every market in one series, soonest first. |
 | `python kalshi_cli.py top --category economics --top 3 --open 3` | Show the top 3 and open each one's kalshi.com page in your browser. |
+| `python kalshi_cli.py search bears packers` | Every open market matching both words, in every category including sports, with no top-N cut. Also shows how the matches group into events. |
+| `python kalshi_cli.py search bears packers --group` | The same search as a list of events with a market count each, instead of every market. |
+| `python kalshi_cli.py search fed rate --any --limit 20` | Markets matching EITHER word, cut to the first 20. |
+| `python kalshi_cli.py search rate cut --phrase --not september` | The exact phrase 'rate cut', leaving out anything that mentions September. |
+| `python kalshi_cli.py search --regex "above \$?9[0-9]" --category commodities` | A pattern search: commodity markets with a threshold in the 90s. |
+| `python kalshi_cli.py search --tag Fed --closes-within 30` | Everything Kalshi files under its own 'Fed' tag that closes within 30 days. |
+| `python kalshi_cli.py search trump --in title --under 15 --sort volume` | Look only in the question text, keep contracts you can buy at 15c or less, busiest first. |
+| `python kalshi_cli.py search CHIGB --count` | Just the number of matching markets and events. CHIGB is the code in the ticker for one game. |
+| `python kalshi_cli.py search fed --tickers` | Only the tickers, one per line, for pasting or piping into something else. |
+| `python kalshi_cli.py search weather --format csv --out weather_all.csv` | Every match written to a spreadsheet file. |
+| `python kalshi_cli.py top --search fed --top 0` | The older way to get everything: --top 0 means no cut. |
+| `python kalshi_cli.py tags` | The tags Kalshi files its markets under, by category. Use one with search --tag. |
+| `python kalshi_cli.py sources KXFEDDECISION-26OCT-H0` | Where the answer comes from: the official settlement source, the contract terms, the fee type, and who may not trade it. |
+| `python kalshi_cli.py status` | Is the exchange open, and is any maintenance scheduled. |
 
 ## Look closer
 
@@ -82,6 +103,17 @@ A row number from the last list (`1`, `2`, ...) works anywhere a ticker does. Re
 | `python kalshi_cli.py picks --top 5 --seed 7` | Fix the random draw so the same five come back. |
 | `python kalshi_cli.py picks --top 5 --bias 0` | Turn the pricing-pattern adjustment off: what the picks look like if the market is simply right. |
 | `python kalshi_cli.py picks --top 8 --closes-within 3 --min-volume-24h 5000` | Only liquid markets that resolve within three days. |
+| `python kalshi_cli.py flow` | The trade tape for the whole exchange: the busiest markets in the last 2,000 trades and which side takers are buying. |
+| `python kalshi_cli.py flow KXFEDDECISION-26OCT-H0 --hours 24` | One market's tape for a day: taker lean, average price paid, time slices and the largest single trades. |
+| `python kalshi_cli.py flow --search bears packers --since 12:00` | Every trade since noon (your local time) in the markets matching those words, side by side. |
+| `python kalshi_cli.py flow --search CHIGB --since noon --markets 60 --by lean` | The same for 60 markets, most one-sided first. |
+| `python kalshi_cli.py flow --by big --category politics elections` | Exchange-wide, only political markets, ordered by the largest single trade. |
+| `python kalshi_cli.py flow 1 --since 2h --format json` | Row 1 of the last list, the last two hours, as JSON. |
+| `python kalshi_cli.py pressure` | Order books that lean hard to one side among the 200 busiest markets, with a warning when one order is most of it. |
+| `python kalshi_cli.py pressure --search fed --min-lean 0.3 --within 5` | The same check on markets matching a word, with a looser screen. |
+| `python kalshi_cli.py rewards` | Markets where Kalshi currently pays a pool of money to traders with resting orders, biggest pool first. |
+| `python kalshi_cli.py rewards --by quiet --category economics --top 30` | Reward pools sorted by pool size against how much trades there: the least competition per dollar. |
+| `python kalshi_cli.py rewards --status upcoming` | Programs that have been announced and not started yet. |
 
 ## Decide
 
